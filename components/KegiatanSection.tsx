@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
 
 const categories = ["Semua", "Sosialisasi", "Kunjungan", "Pengamatan", "Lainnya"];
@@ -58,12 +58,30 @@ const activities = [
 
 export default function KegiatanSection() {
   const [activeCategory, setActiveCategory] = useState("Semua");
-  const [lightbox, setLightbox] = useState<null | typeof activities[0]>(null);
+  const [lightbox, setLightbox] = useState<null | any>(null);
+  const [items, setItems] = useState<any[]>([]);
 
-  const filtered =
-    activeCategory === "Semua"
-      ? activities
-      : activities.filter((a) => a.category === activeCategory);
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/admin/kegiatan-documents').then(r => r.json()).then((b) => {
+      if (!mounted) return;
+      if (b?.success) {
+        const data = b.data.map((d: any) => ({
+          title: d.title,
+          date: d.event_date ? new Date(d.event_date).toLocaleDateString('id-ID') : (new Date(d.created_at).toLocaleDateString('id-ID')),
+          category: d.category || 'Lainnya',
+          image: d.url,
+          description: d.description || '',
+        }));
+        setItems(data);
+      } else {
+        setItems(activities);
+      }
+    }).catch(() => setItems(activities));
+    return () => { mounted = false };
+  }, []);
+
+  const filtered = activeCategory === 'Semua' ? items : items.filter(a => a.category === activeCategory);
 
   return (
     <section id="kegiatan" className="py-20 bg-gray-50">
@@ -153,6 +171,9 @@ export default function KegiatanSection() {
                 <Calendar size={12} className="text-gray-400" />
                 <p className="text-gray-500 text-sm">{lightbox.date}</p>
               </div>
+              {lightbox.description ? (
+                <p className="text-gray-700 text-sm mt-3">{lightbox.description}</p>
+              ) : null}
             </div>
           </div>
         </div>

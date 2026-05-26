@@ -1,10 +1,10 @@
 "use client";
 
 import { ChevronRight, MapPin, Anchor, Waves, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PrakiraanModal from "./modals/PrakiraanModal";
 
-const forecastCards = [
+const defaultForecastCards = [
   {
     title: "Prakiraan Cuaca Kota",
     desc: "Prakiraan cuaca untuk wilayah kota di sekitar Tegal",
@@ -45,7 +45,39 @@ const mainForecast = {
 };
 
 export default function PrakiraanSection() {
-  const [selectedForecast, setSelectedForecast] = useState<typeof forecastCards[0] | null>(null);
+  const [selectedForecast, setSelectedForecast] = useState<typeof defaultForecastCards[0] | null>(null);
+  const [forecastCards, setForecastCards] = useState(defaultForecastCards);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchPrakiraan() {
+      try {
+        const res = await fetch("/api/admin/prakiraan-images");
+        const json = await res.json();
+        if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          const items: any[] = json.data;
+          const byCategory: Record<number, any> = {};
+          items.forEach((it) => {
+            const m = String(it.title || '').match(/^(\d+)/);
+            if (m) {
+              const cat = parseInt(m[1], 10);
+              if (!Number.isNaN(cat)) byCategory[cat] = it;
+            }
+          });
+          const updated = defaultForecastCards.map((card, idx) => ({
+            ...card,
+            image: byCategory[idx + 1]?.url || card.image,
+            desc: byCategory[idx + 1]?.explanation || card.desc,
+          }));
+          setForecastCards(updated);
+        }
+      } catch (e) {
+        // ignore and keep defaults
+      }
+    }
+    fetchPrakiraan();
+    return () => { mounted = false };
+  }, []);
 
   const forecastDetails = {
     "Prakiraan Cuaca Kota": [
@@ -137,7 +169,7 @@ export default function PrakiraanSection() {
 
           {/* Right: Side List (4 Cards Vertical) */}
           <div className="flex flex-col gap-4">
-            {forecastCards.slice(1).map((card, i) => (
+                {forecastCards.slice(1).map((card, i) => (
               <button
                 key={i + 1}
                 onClick={() => setSelectedForecast(card)}

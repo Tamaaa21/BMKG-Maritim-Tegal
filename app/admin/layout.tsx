@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/hero-manager", label: "Slider Home", icon: ImageIcon },
   { href: "/admin/prakiraan-manager", label: "Prakiraan", icon: ImageIcon },
+  { href: "/admin/kegiatan-manager", label: "Dokumentasi Kegiatan", icon: ImageIcon },
   { href: "/admin/buku-tamu", label: "Data Buku Tamu", icon: MessageSquare },
   { href: "/admin/layanan", label: "Data Layanan", icon: FileText },
 ];

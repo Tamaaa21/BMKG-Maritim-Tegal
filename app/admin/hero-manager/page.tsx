@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, X, GripVertical } from "lucide-react";
 
 export default function HeroManager() {
-  const [images, setImages] = useState([
-    { id: 1, name: "Gedung BMKG", url: "https://images.pexels.com/photos/1051073/pexels-photo-1051073.jpeg?auto=compress&cs=tinysrgb&w=1600", order: 0 },
-    { id: 2, name: "Laut", url: "https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=1600", order: 1 },
-    { id: 3, name: "Pelabuhan", url: "https://images.pexels.com/photos/753331/pexels-photo-753331.jpeg?auto=compress&cs=tinysrgb&w=1600", order: 2 },
-  ]);
+  const [images, setImages] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,23 +12,72 @@ export default function HeroManager() {
     if (!file) return;
 
     setUploading(true);
-    // Simulasi upload
-    await new Promise(r => setTimeout(r, 1500));
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("name", file.name);
+      form.append("order", String(images.length));
 
-    const newImage = {
-      id: images.length + 1,
-      name: file.name,
-      url: URL.createObjectURL(file),
-      order: images.length,
-    };
-
-    setImages([...images, newImage]);
-    setUploading(false);
+      const res = await fetch("/api/admin/hero-images", {
+        method: "POST",
+        body: form,
+      });
+      const body = await res.json();
+      if (body?.success && body.data) {
+        const newImage = {
+          id: images.length + 1,
+          name: body.data.name || file.name,
+          url: body.data.url,
+          order: images.length,
+        };
+        setImages([...images, newImage]);
+      } else {
+        // fallback to local preview
+        const newImage = {
+          id: images.length + 1,
+          name: file.name,
+          url: URL.createObjectURL(file),
+          order: images.length,
+        };
+        setImages([...images, newImage]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = (id: number) => {
+    // optimistic UI update
     setImages(images.filter(img => img.id !== id));
+    fetch(`/api/admin/hero-images/${id}`, { method: "DELETE" }).then(() => {}).catch(err => console.error(err));
   };
+
+  const toggleActive = async (id: string, current: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/hero-images/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: !current }),
+      });
+      const body = await res.json();
+      if (body?.success) {
+        setImages(images.map(img => (img.id === id ? body.data : img)));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/admin/hero-images').then(r => r.json()).then((b) => {
+      if (!mounted) return;
+      if (b?.success) setImages(b.data || []);
+    }).catch(err => console.error(err));
+    return () => { mounted = false };
+  }, []);
 
   return (
     <div className="space-y-6">

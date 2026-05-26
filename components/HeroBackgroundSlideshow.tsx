@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const images = [
+const defaultImages = [
   "https://images.pexels.com/photos/1051073/pexels-photo-1051073.jpeg?auto=compress&cs=tinysrgb&w=1600",
   "https://images.pexels.com/photos/1001682/pexels-photo-1001682.jpeg?auto=compress&cs=tinysrgb&w=1600",
   "https://images.pexels.com/photos/753331/pexels-photo-753331.jpeg?auto=compress&cs=tinysrgb&w=1600",
@@ -11,13 +11,36 @@ const images = [
 
 export default function HeroBackgroundSlideshow() {
   const [current, setCurrent] = useState(0);
+  const [images, setImages] = useState<string[]>(defaultImages);
 
   useEffect(() => {
+    let mounted = true;
+    async function fetchHero() {
+      try {
+        const res = await fetch("/api/admin/hero-images");
+        const json = await res.json();
+        if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          const urls = json.data.map((it: any) => it.url).filter(Boolean);
+          if (urls.length) setImages(urls);
+        }
+      } catch (e) {
+        // keep defaults on error
+      }
+    }
+    fetchHero();
     const interval = setInterval(() => {
       setCurrent((prev) => (prev + 1) % images.length);
     }, 20000);
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
+
+  useEffect(() => {
+    // ensure current index stays within bounds when images change
+    if (current >= images.length) setCurrent(0);
+  }, [images, current]);
 
   return (
     <div className="absolute inset-0">
