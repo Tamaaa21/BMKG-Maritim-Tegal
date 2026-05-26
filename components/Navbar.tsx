@@ -33,8 +33,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-[#003399] font-black text-xs leading-tight text-center">BMKG</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
+              <img src="https://www.bmkg.go.id/images/logo-bmkg.png" alt="BMKG" className="w-full h-full object-contain p-1" />
             </div>
             <div className="hidden sm:block">
               <p className="text-white font-bold text-sm leading-tight">BMKG</p>

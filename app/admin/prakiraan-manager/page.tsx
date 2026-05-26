@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Upload, X } from "lucide-react";
+import PamfletManager from "./PamfletManager";
 
 const forecastCategories = [
   { id: 1, name: "Prakiraan Cuaca Kota" },
@@ -92,6 +93,14 @@ export default function PrakiraanManager() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Kelola Prakiraan</h1>
         <p className="text-gray-500 mt-2">Atur gambar untuk setiap kategori prakiraan</p>
+      </div>
+
+      {/* Pamflet Manager */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Kelola Pamflet Prakiraan</h2>
+        <p className="text-gray-500 mt-1">Atur pamflet yang tampil di bagian Prakiraan. Upload gambar atau tambahkan URL.</p>
+
+        <PamfletManager />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
