@@ -20,12 +20,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("adminToken");
-    if (!token) {
-      router.push("/admin/login");
-    } else {
-      setIsLoggedIn(true);
+    try {
+      const token = localStorage.getItem("adminToken");
+      // Debug: ensure we never stay loading indefinitely
+      if (!token) {
+        setIsLoggedIn(false);
+        setLoading(false);
+        // If we're already on the login page, don't push to avoid redirect loop
+        if (pathname !== "/admin/login") {
+          router.push("/admin/login");
+        }
+      } else {
+        setIsLoggedIn(true);
+        setLoading(false);
+      }
+    } catch (err) {
+      // If localStorage access fails for any reason, stop loading and redirect to login
+      // eslint-disable-next-line no-console
+      console.error("Error checking admin token:", err);
+      setIsLoggedIn(false);
       setLoading(false);
+      try {
+        router.push("/admin/login");
+      } catch (e) {
+        // ignore
+      }
     }
   }, [router]);
 
@@ -46,6 +65,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!isLoggedIn) {
+    // Allow the login page to render even when not logged in
+    if (pathname === "/admin/login") {
+      return <>{children}</>;
+    }
     return null;
   }
 

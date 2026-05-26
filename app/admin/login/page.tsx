@@ -23,10 +23,19 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await response.json();
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        // If response is not JSON (e.g., HTML error page), fall back to text
+        const text = await response.text();
+        console.error("Failed to parse JSON from /api/admin/login:", parseErr, text);
+        setError("Terjadi kesalahan pada respons server");
+        return;
+      }
 
       if (!response.ok) {
-        setError(data.message || "Login gagal");
+        setError(data?.message || "Login gagal");
         return;
       }
 
@@ -34,6 +43,7 @@ export default function AdminLoginPage() {
       router.push("/admin/dashboard");
     } catch (err) {
       setError("Terjadi kesalahan server");
+      // eslint-disable-next-line no-console
       console.error(err);
     } finally {
       setLoading(false);
