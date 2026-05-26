@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronRight, MapPin, Anchor, Waves, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import PrakiraanModal from "./modals/PrakiraanModal";
 
 const forecastCards = [
   {
@@ -43,6 +45,35 @@ const mainForecast = {
 };
 
 export default function PrakiraanSection() {
+  const [selectedForecast, setSelectedForecast] = useState<typeof forecastCards[0] | null>(null);
+
+  const forecastDetails = {
+    "Prakiraan Cuaca Kota": [
+      { label: "Suhu", value: "24-30°C" },
+      { label: "Cuaca", value: "Berawan" },
+      { label: "Kelembapan", value: "75%" },
+      { label: "Angin", value: "15 km/h" },
+    ],
+    "Prakiraan Cuaca Pelabuhan": [
+      { label: "Gelombang", value: "1-2 meter" },
+      { label: "Arus", value: "0.5 knot" },
+      { label: "Visibilitas", value: ">5 km" },
+      { label: "Kondisi", value: "Layak Berlayar" },
+    ],
+    "Prakiraan Cuaca Maritim": [
+      { label: "Gelombang", value: "1.5-2.5 m" },
+      { label: "Periode", value: "6-8 detik" },
+      { label: "Arah Angin", value: "Tenggara" },
+      { label: "Kecepatan", value: "10-20 km/h" },
+    ],
+    "Informasi Pasang Surut / Wisata Bahari": [
+      { label: "Kondisi Pasang", value: "Naik" },
+      { label: "Jam Pasang", value: "19:00 WIB" },
+      { label: "Tinggi Pasang", value: "0.8 m" },
+      { label: "Kondisi Wisata", value: "Baik" },
+    ],
+  };
+
   return (
     <section id="prakiraan" className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
@@ -80,9 +111,10 @@ export default function PrakiraanSection() {
         {/* 4 Forecast Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {forecastCards.map((card, i) => (
-            <div
+            <button
               key={i}
-              className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer"
+              onClick={() => setSelectedForecast(card)}
+              className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer text-left"
               style={{ minHeight: "260px" }}
             >
               <img
@@ -100,15 +132,12 @@ export default function PrakiraanSection() {
                 <div>
                   <h3 className="text-white font-bold text-base mb-1 leading-tight">{card.title}</h3>
                   <p className="text-blue-100 text-xs mb-3 leading-relaxed">{card.desc}</p>
-                  <a
-                    href="#"
-                    className="inline-flex items-center gap-1 text-xs text-white/90 hover:text-white font-semibold bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-full transition-colors"
-                  >
+                  <span className="inline-flex items-center gap-1 text-xs text-white/90 group-hover:text-white font-semibold bg-white/20 group-hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-full transition-colors">
                     Lihat Selengkapnya <ChevronRight size={12} />
-                  </a>
+                  </span>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -117,14 +146,29 @@ export default function PrakiraanSection() {
           <p className="text-gray-600 text-sm text-center sm:text-left">
             Informasi disediakan berdasarkan data terbaru dan diupdate setiap hari.
           </p>
-          <a
-            href="#"
+          <button
+            onClick={() => setSelectedForecast(forecastCards[0])}
             className="flex-shrink-0 px-5 py-2 bg-[#003399] hover:bg-[#0044cc] text-white text-sm font-semibold rounded-full transition-colors"
           >
             Pahami Lebih Lanjut
-          </a>
+          </button>
         </div>
       </div>
+
+      {/* Modal */}
+      {selectedForecast && (
+        <PrakiraanModal
+          isOpen={!!selectedForecast}
+          onClose={() => setSelectedForecast(null)}
+          data={{
+            title: selectedForecast.title,
+            desc: selectedForecast.desc,
+            image: selectedForecast.image,
+            details: forecastDetails[selectedForecast.title as keyof typeof forecastDetails] || [],
+            lastUpdated: "18 Mei 2024, 12:01 WIB",
+          }}
+        />
+      )}
     </section>
   );
 }

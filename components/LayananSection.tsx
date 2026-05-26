@@ -1,6 +1,10 @@
 "use client";
 
 import { ChevronRight, CreditCard, Gift, Shield, Star } from "lucide-react";
+import { useState } from "react";
+import BukuTamuModal from "./modals/BukuTamuModal";
+import LayananBerbayarModal from "./modals/LayananBerbayarModal";
+import LayananNolRupiahModal from "./modals/LayananNolRupiahModal";
 
 const services = [
   {
@@ -42,6 +46,10 @@ const services = [
 ];
 
 export default function LayananSection() {
+  const [bukuTamuOpen, setBukuTamuOpen] = useState(false);
+  const [layananBerbayarOpen, setLayananBerbayarOpen] = useState(false);
+  const [layananNolRupiahOpen, setLayananNolRupiahOpen] = useState(false);
+
   return (
     <section id="layanan" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
@@ -54,28 +62,53 @@ export default function LayananSection() {
 
         {/* Service Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {services.map((svc, i) => (
-            <div
-              key={i}
-              className={`bg-white border ${svc.accent} rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col`}
-            >
-              <div className={`w-14 h-14 ${svc.iconBg} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
-                <svc.icon size={26} className={svc.iconColor} />
-              </div>
-              <h3 className="text-gray-900 font-bold text-base mb-0.5">{svc.title}</h3>
-              {svc.subtitle && (
-                <p className="text-gray-500 text-xs mb-3">{svc.subtitle}</p>
-              )}
-              {!svc.subtitle && <div className="mb-3" />}
-              <p className="text-gray-500 text-sm leading-relaxed flex-1">{svc.desc}</p>
-              <a
-                href="#"
-                className="mt-4 inline-flex items-center gap-1 text-sm text-[#003399] font-semibold hover:gap-2 transition-all"
+          {services.map((svc, i) => {
+            let onCardClick = () => {};
+            if (i === 0) onCardClick = () => setLayananBerbayarOpen(true);
+            else if (i === 1) onCardClick = () => setLayananNolRupiahOpen(true);
+
+            return (
+              <button
+                key={i}
+                onClick={onCardClick}
+                className={`bg-white border ${svc.accent} rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col text-left`}
               >
-                Selengkapnya <ChevronRight size={14} />
-              </a>
+                <div className={`w-14 h-14 ${svc.iconBg} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
+                  <svc.icon size={26} className={svc.iconColor} />
+                </div>
+                <h3 className="text-gray-900 font-bold text-base mb-0.5">{svc.title}</h3>
+                {svc.subtitle && (
+                  <p className="text-gray-500 text-xs mb-3">{svc.subtitle}</p>
+                )}
+                {!svc.subtitle && <div className="mb-3" />}
+                <p className="text-gray-500 text-sm leading-relaxed flex-1">{svc.desc}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm text-[#003399] font-semibold group-hover:gap-2 transition-all">
+                  Selengkapnya <ChevronRight size={14} />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Buku Tamu Card */}
+        <div className="mb-8">
+          <button
+            onClick={() => setBukuTamuOpen(true)}
+            className="w-full bg-gradient-to-r from-[#003399] to-[#0055cc] hover:from-[#0044cc] hover:to-[#0066dd] text-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg">Buku Tamu</h3>
+                <p className="text-blue-100 text-sm">Daftar sebagai tamu dan kunjungi kami</p>
+              </div>
+              <ChevronRight size={20} className="flex-shrink-0" />
             </div>
-          ))}
+          </button>
         </div>
 
         {/* Bottom Banner */}
@@ -88,14 +121,19 @@ export default function LayananSection() {
               Untuk permohonan layanan dapat dilakukan secara online.
             </p>
           </div>
-          <a
-            href="#"
+          <button
+            onClick={() => setLayananBerbayarOpen(true)}
             className="flex-shrink-0 px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white text-sm font-semibold rounded-full transition-colors"
           >
             Ajukan Layanan
-          </a>
+          </button>
         </div>
       </div>
+
+      {/* Modals */}
+      <BukuTamuModal isOpen={bukuTamuOpen} onClose={() => setBukuTamuOpen(false)} />
+      <LayananBerbayarModal isOpen={layananBerbayarOpen} onClose={() => setLayananBerbayarOpen(false)} />
+      <LayananNolRupiahModal isOpen={layananNolRupiahOpen} onClose={() => setLayananNolRupiahOpen(false)} />
     </section>
   );
 }

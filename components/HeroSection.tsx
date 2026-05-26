@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Wind, Droplets, Eye, ArrowUp, Cloud, Thermometer, AlertTriangle, Satellite, Waves, BarChart2, Phone } from "lucide-react";
+import HeroBackgroundSlideshow from "./HeroBackgroundSlideshow";
 
 const weatherData = {
   city: "Tegal, Jawa Tengah",
@@ -43,15 +44,8 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section
-      id="home"
-      className="relative min-h-screen flex flex-col"
-      style={{
-        backgroundImage: `url('https://images.pexels.com/photos/1051073/pexels-photo-1051073.jpeg?auto=compress&cs=tinysrgb&w=1600')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <section id="home" className="relative min-h-screen flex flex-col">
+      <HeroBackgroundSlideshow />
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#001a66]/90 via-[#003399]/75 to-[#003399]/50" />
 
