@@ -1,9 +1,9 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Camera, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface BukuTamuFormData {
   nama: string;
@@ -21,8 +21,113 @@ interface BukuTamuModalProps {
 export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<BukuTamuFormData>();
   const [submitted, setSubmitted] = useState(false);
+  const [fotoData, setFotoData] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Cleanup camera stream
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      setShowCamera(true); // Show camera UI first
+      
+      // Small delay to ensure DOM is ready
+      await new Promise(r => setTimeout(r, 100));
+      
+      // Request camera with minimal constraints first
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user"
+        },
+        audio: false,
+      });
+      
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        // Set srcObject
+        videoRef.current.srcObject = stream;
+        
+        // Add event listener for when metadata loads
+        const onLoadedMetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              console.log("Video playing successfully");
+            }).catch(err => {
+              console.error("Play error:", err);
+              setCameraError("Tidak dapat memutar video kamera");
+            });
+          }
+        };
+        
+        videoRef.current.addEventListener("loadedmetadata", onLoadedMetadata);
+        
+        // Fallback in case loadedmetadata doesn't fire
+        setTimeout(() => {
+          if (videoRef.current && videoRef.current.readyState < 2) {
+            videoRef.current.play().catch(err => console.error("Fallback play error:", err));
+          }
+        }, 500);
+      }
+    } catch (error) {
+      setShowCamera(false);
+      setCameraError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.");
+      console.error("Camera error:", error);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
+  const captureFoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        
+        // Mirror the image (flip horizontally)
+        context.scale(-1, 1);
+        context.drawImage(videoRef.current, -videoRef.current.videoWidth, 0);
+        
+        const imageData = canvasRef.current.toDataURL("image/jpeg", 0.85);
+        setFotoData(imageData);
+        stopCamera();
+      }
+    }
+  };
+
+  const retakeFoto = () => {
+    setFotoData(null);
+    startCamera();
+  };
+
+  const removeFoto = () => {
+    setFotoData(null);
+  };
 
   const onSubmit = async (data: BukuTamuFormData) => {
+    if (!fotoData) {
+      alert("Foto wajib diambil!");
+      return;
+    }
+
     try {
       const response = await fetch("/api/submit/buku-tamu", {
         method: "POST",
@@ -33,6 +138,7 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
           no_telepon: data.noTelepon,
           instansi: data.instansi || null,
           keperluan: data.keperluan,
+          foto_data: fotoData,
         }),
       });
 
@@ -41,6 +147,7 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
       setSubmitted(true);
       await new Promise(r => setTimeout(r, 1500));
       reset();
+      setFotoData(null);
       setSubmitted(false);
       onClose();
     } catch (error) {
@@ -57,7 +164,7 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-96 overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -66,7 +173,7 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
             <h2 className="text-xl font-bold">Buku Tamu</h2>
             <p className="text-blue-100 text-xs mt-1">Silakan isi data Anda untuk menjadi tamu kami</p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0">
             <X size={20} />
           </button>
         </div>
@@ -133,6 +240,92 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
               {errors.keperluan && <p className="text-red-500 text-xs mt-1">{errors.keperluan.message}</p>}
             </div>
 
+            {/* Foto Section */}
+            <div className="border-t pt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Foto <span className="text-red-500">*</span></label>
+              
+              {showCamera ? (
+                <div className="space-y-3">
+                  <div className="relative w-full bg-black rounded-lg overflow-hidden aspect-video">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      disablePictureInPicture
+                      className="absolute inset-0 w-full h-full bg-black"
+                      style={{
+                        WebkitTransform: 'scaleX(-1)',
+                        MozTransform: 'scaleX(-1)',
+                        transform: 'scaleX(-1)',
+                        display: 'block',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                  {cameraError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-xs text-red-600">{cameraError}</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={captureFoto}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      <Camera size={16} />
+                      Ambil Foto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              ) : fotoData ? (
+                <div className="space-y-3">
+                  <div className="relative bg-gray-100 rounded-lg overflow-hidden aspect-video">
+                    <img
+                      src={fotoData}
+                      alt="Captured foto"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={retakeFoto}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      <Camera size={16} />
+                      Ulangi Foto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeFoto}
+                      className="flex-1 px-4 py-2 border border-red-200 text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors text-sm flex items-center justify-center gap-2"
+                    >
+                      <Trash2 size={16} />
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="w-full px-4 py-3 border-2 border-dashed border-[#003399] bg-blue-50 hover:bg-blue-100 text-[#003399] font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <Camera size={18} />
+                  Buka Kamera
+                </button>
+              )}
+            </div>
+
             {/* Buttons */}
             <div className="flex gap-3 pt-4 border-t">
               <button
@@ -144,7 +337,8 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors text-sm"
+                className="flex-1 px-4 py-2 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!fotoData}
               >
                 Kirim
               </button>
@@ -161,6 +355,9 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
             <p className="text-gray-500 text-sm mt-2">Terima kasih telah mengunjungi BMKG Tegal</p>
           </div>
         )}
+
+        {/* Hidden Canvas */}
+        <canvas ref={canvasRef} className="hidden" />
       </motion.div>
     </div>
   );

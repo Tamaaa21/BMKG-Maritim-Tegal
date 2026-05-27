@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'BMKG – Stasiun Meteorologi Maritim Tegal',
   description: 'Portal informasi cuaca maritim Stasiun Meteorologi Maritim Tegal – BMKG.',
+  icons: {
+    icon: '/bmkg-logo.png',
+  },
   openGraph: {
     images: [
       {

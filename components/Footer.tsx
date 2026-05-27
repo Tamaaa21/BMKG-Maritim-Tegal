@@ -34,7 +34,7 @@ export default function Footer() {
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-[#003399] font-black text-xs">BMKG</span>
+              <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
                 </div>
                 <div>
                   <p className="font-bold text-sm leading-tight">STASIUN METEOROLOGI</p>

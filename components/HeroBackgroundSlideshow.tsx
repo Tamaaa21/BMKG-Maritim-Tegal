@@ -35,7 +35,7 @@ export default function HeroBackgroundSlideshow() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [images.length]);
 
   useEffect(() => {
     // ensure current index stays within bounds when images change
@@ -43,18 +43,27 @@ export default function HeroBackgroundSlideshow() {
   }, [images, current]);
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
+      {/* Background with overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 z-10" />
+      
       <AnimatePresence mode="wait">
-        <motion.img
+        <motion.div
           key={current}
-          src={images[current]}
-          alt="Hero background"
-          className="absolute inset-0 w-full h-full object-cover"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5 }}
-        />
+          className="absolute inset-0 w-full h-full"
+        >
+          <img
+            src={images[current]}
+            alt="Hero background"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </motion.div>
       </AnimatePresence>
     </div>
   );

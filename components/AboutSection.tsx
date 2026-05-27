@@ -56,23 +56,13 @@ export default function AboutSection() {
 
           {/* Right: Video Player */}
           <div className="relative rounded-2xl overflow-hidden shadow-xl group cursor-pointer">
-            <img
-              src="https://images.pexels.com/photos/1098460/pexels-photo-1098460.jpeg?auto=compress&cs=tinysrgb&w=800"
-              alt="BMKG Stasiun Meteorologi Maritim Tegal"
-              className="w-full h-64 md:h-72 object-cover"
-            />
-            <div className="absolute inset-0 bg-[#003399]/50 flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform mb-4">
-                <Play className="text-[#003399] ml-1" size={28} fill="currentColor" />
-              </div>
-              <p className="text-white font-bold text-lg tracking-wide">PROFILE</p>
-              <p className="text-white font-black text-xl tracking-widest text-center px-4">
-                STASIUN METEOROLOGI<br />MARITIM TEGAL
-              </p>
-            </div>
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
-              0:00 / 2:15
-            </div>
+              <iframe
+    className="w-full h-64 md:h-72 object-cover"
+    src="https://www.youtube.com/embed/wBkyfeTdfVc"
+    title="BMKG Stasiun Meteorologi Maritim Tegal"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  ></iframe>
           </div>
         </div>
 

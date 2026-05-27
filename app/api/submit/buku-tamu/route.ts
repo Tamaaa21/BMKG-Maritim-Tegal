@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
 
+    // If foto_data is provided, store it as is (base64 data URL)
     const { error } = await supabase.from("buku_tamu").insert([
       {
         nama: data.nama,
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
         no_telepon: data.no_telepon,
         instansi: data.instansi,
         keperluan: data.keperluan,
+        foto_data: data.foto_data || null,
       },
     ]);
 
@@ -31,3 +33,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
