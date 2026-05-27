@@ -34,7 +34,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
-              <img src="https://www.bmkg.go.id/images/logo-bmkg.png" alt="BMKG" className="w-full h-full object-contain p-1" />
+              <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
             </div>
             <div className="hidden sm:block">
               <p className="text-white font-bold text-sm leading-tight">BMKG</p>
@@ -65,9 +65,7 @@ export default function Navbar() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
-            <button className="p-2 text-blue-100 hover:text-white transition-colors">
-              <Search size={18} />
-            </button>
+          
             <button className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-blue-100 hover:text-white border border-blue-300/40 rounded-full transition-colors">
               <Globe size={14} />
               ID

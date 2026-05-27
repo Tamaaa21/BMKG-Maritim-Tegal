@@ -15,6 +15,8 @@ export default function PrakiraanManager() {
   const [images, setImages] = useState<Record<string, any>>({});
   const [uploading, setUploading] = useState<string | null>(null);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
+  const [items, setItems] = useState<Record<string, any>>({});
+  const [saving, setSaving] = useState(false);
 
   const handleUpload = async (categoryId: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -26,6 +28,16 @@ export default function PrakiraanManager() {
       form.append("file", file);
       form.append("title", `${categoryId} - ${categoryId}`);
       if (explanations[categoryId]) form.append('explanation', explanations[categoryId]);
+      // attach uploader from admin token so uploaded record is linked to the user
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+        if (token) {
+          const username = atob(token).split(':')[0];
+          if (username) form.append('uploader', username);
+        }
+      } catch (e) {
+        // ignore token decode errors
+      }
 
       const res = await fetch("/api/admin/prakiraan-images", {
         method: "POST",
@@ -35,6 +47,9 @@ export default function PrakiraanManager() {
       if (body?.success && body.data) {
         setImages({ ...images, [categoryId]: body.data.url });
         if (body.data.explanation) setExplanations({ ...explanations, [categoryId]: body.data.explanation });
+        setItems({ ...items, [categoryId]: body.data });
+        // persist this category immediately so public view updates
+        try { await saveCategory(categoryId); } catch (e) { /* ignore */ }
       } else {
         setImages({ ...images, [categoryId]: URL.createObjectURL(file) });
       }
@@ -63,12 +78,14 @@ export default function PrakiraanManager() {
       if (b?.success) {
         const map: Record<string, string> = {};
         const expl: Record<string, string> = {};
+        const itmap: Record<string, any> = {};
         b.data.forEach((item: any) => {
           // try to detect category id from title prefix
           const m = String(item.title || '').match(/^(\d+)/);
           const key = m ? m[1] : item.id;
           map[key] = item.url;
           if (item.explanation) expl[key] = item.explanation;
+          itmap[key] = item;
         });
         // fill defaults for missing
         const defaults: Record<number, string> = {
@@ -83,10 +100,56 @@ export default function PrakiraanManager() {
         });
         setImages(map as any);
         setExplanations(expl as any);
+        setItems(itmap as any);
       }
     }).catch(err => console.error(err));
     return () => { mounted = false };
   }, []);
+
+  const saveCategory = async (cid: number) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+      let username = null;
+      try { if (token) username = atob(token).split(':')[0]; } catch (e) {}
+
+      const expl = explanations[cid] || '';
+      const existing = items[cid];
+
+      if (existing && existing.id) {
+        await fetch(`/api/admin/prakiraan-images/${existing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ explanation: expl, uploader: username }),
+        });
+      } else {
+        const category = forecastCategories.find(c => c.id === cid);
+        await fetch('/api/admin/prakiraan-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: images[cid], title: `${cid} - ${category?.name || cid}`, explanation: expl, uploader: username }),
+        });
+      }
+
+      // refresh items
+      const res = await fetch('/api/admin/prakiraan-images');
+      const b2 = await res.json();
+      if (b2?.success) {
+        const itmap2: Record<string, any> = {};
+        b2.data.forEach((item: any) => {
+          const m = String(item.title || '').match(/^(\d+)/);
+          const key = m ? m[1] : item.id;
+          itmap2[key] = item;
+        });
+        setItems(itmap2 as any);
+        if (itmap2[cid]) {
+          setImages(prev => ({ ...prev, [cid]: itmap2[cid].url }));
+          setExplanations(prev => ({ ...prev, [cid]: itmap2[cid].explanation || '' }));
+        }
+      }
+    } catch (e) {
+      console.error('saveCategory error', e);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -115,7 +178,13 @@ export default function PrakiraanManager() {
 
             <div className="mb-3">
               <label className="block text-sm font-medium text-gray-700">Penjelasan Gambar</label>
-              <textarea value={explanations[category.id] || ''} onChange={e => setExplanations({...explanations, [category.id]: e.target.value})} className="mt-1 block w-full border rounded-md p-2" rows={2} />
+              <textarea
+                value={explanations[category.id] || ''}
+                onChange={e => setExplanations({...explanations, [category.id]: e.target.value})}
+                onBlur={() => saveCategory(category.id)}
+                className="mt-1 block w-full border rounded-md p-2"
+                rows={2}
+              />
             </div>
 
             {/* Upload Area */}
@@ -148,8 +217,51 @@ export default function PrakiraanManager() {
         <button className="px-6 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
           Batal
         </button>
-        <button className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors">
-          Simpan Perubahan
+        <button onClick={async () => {
+          setSaving(true);
+          try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+            let username = null;
+            try { if (token) username = atob(token).split(':')[0]; } catch (e) {}
+
+            for (const c of forecastCategories) {
+              const cid = c.id;
+              const expl = explanations[cid] || '';
+              const existing = items[cid];
+              if (existing && existing.id) {
+                // patch existing record
+                await fetch(`/api/admin/prakiraan-images/${existing.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ explanation: expl, uploader: username }),
+                });
+              } else {
+                // create new entry from current URL
+                await fetch('/api/admin/prakiraan-images', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: images[cid], title: `${cid} - ${c.name}`, explanation: expl, uploader: username }),
+                });
+              }
+            }
+
+            // refresh items
+            const res = await fetch('/api/admin/prakiraan-images');
+            const b2 = await res.json();
+            if (b2?.success) {
+              const itmap2: Record<string, any> = {};
+              b2.data.forEach((item: any) => {
+                const m = String(item.title || '').match(/^(\d+)/);
+                const key = m ? m[1] : item.id;
+                itmap2[key] = item;
+              });
+              setItems(itmap2 as any);
+            }
+          } catch (e) {
+            console.error(e);
+          } finally { setSaving(false); }
+        }} className={`px-6 py-2.5 ${saving? 'opacity-60 pointer-events-none': ''} bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors`}>
+          {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
         </button>
       </div>
     </div>

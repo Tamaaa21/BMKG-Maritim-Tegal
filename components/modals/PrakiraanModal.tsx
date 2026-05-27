@@ -10,11 +10,12 @@ interface PrakiraanModalProps {
     title: string;
     desc: string;
     image: string;
-    details: {
+    details?: {
       label: string;
       value: string;
     }[];
-    lastUpdated: string;
+    explanation?: string;
+    lastUpdated?: string;
   };
 }
 
@@ -44,7 +45,6 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
             <h3 className="text-xl font-bold">{data.title}</h3>
-            <p className="text-sm text-blue-100 mt-1">{data.desc}</p>
           </div>
         </div>
 
@@ -54,7 +54,6 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
             {/* Header */}
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{data.title}</h2>
-              <p className="text-gray-500 text-sm mt-2">{data.desc}</p>
             </div>
 
             {/* Details Grid */}
@@ -74,7 +73,7 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-2 text-sm">Penjelasan Detail</h4>
               <p className="text-gray-700 text-sm leading-relaxed">
-                Prakiraan cuaca ini didasarkan pada data observasi terkini dari stasiun meteorologi dan analisis model cuaca numerik. Informasi ini diperbarui secara berkala untuk memberikan akurasi maksimal bagi keselamatan pelayaran dan aktivitas maritim.
+                {data.explanation || data.desc || 'Penjelasan belum tersedia.'}
               </p>
             </div>
 

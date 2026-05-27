@@ -67,7 +67,9 @@ export default function PrakiraanSection() {
           const updated = defaultForecastCards.map((card, idx) => ({
             ...card,
             image: byCategory[idx + 1]?.url || card.image,
-            desc: byCategory[idx + 1]?.explanation || card.desc,
+            desc: byCategory[idx + 1]?.explanation || '',
+            created_at: byCategory[idx + 1]?.created_at || byCategory[idx + 1]?.createdAt || null,
+            details: byCategory[idx + 1]?.details || [],
           }));
           setForecastCards(updated);
         }
@@ -79,99 +81,80 @@ export default function PrakiraanSection() {
     return () => { mounted = false };
   }, []);
 
-  const forecastDetails = {
-    "Prakiraan Cuaca Kota": [
-      { label: "Suhu", value: "24-30°C" },
-      { label: "Cuaca", value: "Berawan" },
-      { label: "Kelembapan", value: "75%" },
-      { label: "Angin", value: "15 km/h" },
-    ],
-    "Prakiraan Cuaca Pelabuhan": [
-      { label: "Gelombang", value: "1-2 meter" },
-      { label: "Arus", value: "0.5 knot" },
-      { label: "Visibilitas", value: ">5 km" },
-      { label: "Kondisi", value: "Layak Berlayar" },
-    ],
-    "Prakiraan Cuaca Maritim": [
-      { label: "Gelombang", value: "1.5-2.5 m" },
-      { label: "Periode", value: "6-8 detik" },
-      { label: "Arah Angin", value: "Tenggara" },
-      { label: "Kecepatan", value: "10-20 km/h" },
-    ],
-    "Informasi Pasang Surut / Wisata Bahari": [
-      { label: "Kondisi Pasang", value: "Naik" },
-      { label: "Jam Pasang", value: "19:00 WIB" },
-      { label: "Tinggi Pasang", value: "0.8 m" },
-      { label: "Kondisi Wisata", value: "Baik" },
-    ],
-  };
+  // Pamflet rotator (left card) — load from saved pamflets (no defaults)
+  const [pamphletImages, setPamphletImages] = useState<string[]>([]);
+  const [pamphletIndex, setPamphletIndex] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    async function fetchPamflets() {
+      try {
+        const res = await fetch('/api/admin/pamflets');
+        const j = await res.json();
+        if (mounted && j?.success && Array.isArray(j.data)) {
+          const urls = j.data.map((it: any) => it.url).filter(Boolean);
+          setPamphletImages(urls);
+          setPamphletIndex(0);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchPamflets();
+    return () => { mounted = false };
+  }, []);
+
+  useEffect(() => {
+    if (!pamphletImages || pamphletImages.length === 0) return;
+    const t = setInterval(() => setPamphletIndex((s) => (s + 1) % pamphletImages.length), 15000);
+    return () => clearInterval(t);
+  }, [pamphletImages]);
+
+  // Forecast detail grid is provided by admin per-entry now.
 
   return (
     <section id="prakiraan" className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <span className="text-[#003399] text-sm font-semibold uppercase tracking-widest">Cuaca & Maritim</span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">Informasi Prakiraan</h2>
           <p className="text-gray-500 mt-2">Pilih kategori informasi prakiraan yang Anda butuhkan</p>
         </div>
 
         {/* Main Forecast Card */}
-        <div className="bg-gradient-to-r from-[#003399] to-[#0055cc] rounded-2xl p-6 md:p-8 mb-8 shadow-xl text-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <p className="text-blue-200 text-sm mb-1">{mainForecast.date}</p>
-              <h3 className="text-xl font-bold mb-1">{mainForecast.location}</h3>
-              <p className="text-blue-200 text-sm">Prakiraan Cuaca Maritim Terkini</p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "Gelombang", value: mainForecast.wave },
-                { label: "Angin", value: mainForecast.wind },
-                { label: "Jarak Pandang", value: mainForecast.visibility },
-                { label: "Kondisi", value: mainForecast.condition },
-              ].map((item) => (
-                <div key={item.label} className="bg-white/15 rounded-xl px-4 py-3 text-center">
-                  <p className="text-blue-200 text-xs mb-1">{item.label}</p>
-                  <p className="text-white font-bold text-sm">{item.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+       
 
         {/* Main Feature & List Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Main Card (Large Feature) */}
+          {/* Left: Pamflet rotator (Large Feature) */}
           <div className="lg:col-span-2">
-            <button
-              onClick={() => setSelectedForecast(forecastCards[0])}
-              className="relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group cursor-pointer text-left w-full"
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-md transition-all duration-300 cursor-default w-full"
               style={{ aspectRatio: "16/12" }}
             >
-              <img
-                src={forecastCards[0].image}
-                alt={forecastCards[0].title}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className={`absolute inset-0 bg-gradient-to-t ${forecastCards[0].color} to-transparent`} />
+              {pamphletImages && pamphletImages.length > 0 ? (
+                <img
+                  src={pamphletImages[pamphletIndex]}
+                  alt={`Pamflet ${pamphletIndex + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700"
+                />
+              ) : (
+                <div className="absolute inset-0 w-full h-full bg-gray-100" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-6">
                 <div>
-                  <h3 className="text-white font-bold text-2xl mb-2 leading-tight">{forecastCards[0].title}</h3>
-                  <p className="text-blue-100 text-sm mb-4 leading-relaxed max-w-md">{forecastCards[0].desc}</p>
-                  <span className="inline-flex items-center gap-1 text-sm text-white/90 group-hover:text-white font-semibold bg-white/20 group-hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-full transition-colors">
-                    Lihat Selengkapnya <ChevronRight size={14} />
-                  </span>
+                  <h3 className="text-white font-bold text-2xl mb-2 leading-tight">Informasi & Pamflet</h3>
+                  <p className="text-blue-100 text-sm mb-4 leading-relaxed max-w-md">Kumpulan pamflet dan pengumuman; berganti otomatis setiap 15 detik.</p>
                 </div>
               </div>
-            </button>
+            </div>
           </div>
 
-          {/* Right: Side List (4 Cards Vertical) */}
+          {/* Right: Side List (All Forecast Cards Vertical, includes Kota) */}
           <div className="flex flex-col gap-4">
-                {forecastCards.slice(1).map((card, i) => (
+            {forecastCards.map((card, i) => (
               <button
-                key={i + 1}
+                key={i}
                 onClick={() => setSelectedForecast(card)}
                 className="flex gap-3 bg-white border border-gray-200 rounded-xl p-4 hover:border-[#003399] hover:shadow-md transition-all group"
               >
@@ -214,10 +197,11 @@ export default function PrakiraanSection() {
           onClose={() => setSelectedForecast(null)}
           data={{
             title: selectedForecast.title,
-            desc: selectedForecast.desc,
+            desc: '',
             image: selectedForecast.image,
-            details: forecastDetails[selectedForecast.title as keyof typeof forecastDetails] || [],
-            lastUpdated: "18 Mei 2024, 12:01 WIB",
+            details: (selectedForecast as any).details || [],
+            explanation: (selectedForecast as any).desc || '',
+            lastUpdated: (selectedForecast as any).created_at || "18 Mei 2024, 12:01 WIB",
           }}
         />
       )}

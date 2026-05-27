@@ -2,34 +2,30 @@
 
 import { Play, Download, Share2, ChevronRight } from "lucide-react";
 
-const publications = [
-  {
-    title: "Buletin Cuaca Maritim Mei 2024",
-    date: "15 Mei 2024",
-    type: "PDF",
-    color: "bg-red-500",
-  },
-  {
-    title: "Analisa Gelombang Mingguan",
-    date: "12 Mei 2024",
-    type: "PDF",
-    color: "bg-red-500",
-  },
-  {
-    title: "Informasi Pasang Surut Mei 2024",
-    date: "10 Mei 2024",
-    type: "PDF",
-    color: "bg-red-500",
-  },
-  {
-    title: "Prospek Cuaca Dasarian II Mei 2024",
-    date: "8 Mei 2024",
-    type: "PDF",
-    color: "bg-red-500",
-  },
-];
+import { useEffect, useState } from 'react';
+
+type Pub = { id: string; title: string; date?: string; created_at?: string; url: string; description?: string; uploader?: string };
+
 
 export default function AboutSection() {
+  const [publications, setPublications] = useState<Pub[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/publications')
+      .then((r) => r.json())
+      .then((b) => {
+        if (!mounted) return;
+        if (b?.success && Array.isArray(b.data)) {
+          const mapped = b.data.map((d: any) => ({ id: d.id, title: d.title || d.name || 'Publikasi', date: d.created_at || d.date || '', url: d.url, description: d.description || '', uploader: d.uploader || '' }));
+          setPublications(mapped);
+        } else {
+          setPublications([]);
+        }
+      })
+      .catch(() => setPublications([]));
+    return () => { mounted = false };
+  }, []);
   return (
     <section id="about" className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
@@ -92,11 +88,11 @@ export default function AboutSection() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {publications.map((pub, i) => (
               <div
-                key={i}
+                key={pub.id || i}
                 className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow group"
               >
                 <div className="flex items-start gap-3 mb-4">
-                  <div className={`${pub.color} rounded-lg p-2.5 flex-shrink-0`}>
+                  <div className={`bg-red-500 rounded-lg p-2.5 flex-shrink-0`}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                       <polyline points="14 2 14 8 20 8" fill="none" stroke="white" strokeWidth="2" />
@@ -110,9 +106,9 @@ export default function AboutSection() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 border-t border-gray-100 pt-3">
-                  <button className="flex items-center gap-1 text-xs text-[#003399] hover:underline">
+                  <a href={pub.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[#003399] hover:underline">
                     <Download size={12} /> Unduh
-                  </button>
+                  </a>
                   <span className="text-gray-200">|</span>
                   <button className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#003399]">
                     <Share2 size={12} />

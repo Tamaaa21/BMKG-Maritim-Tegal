@@ -7,6 +7,7 @@ import { LayoutDashboard, ImageIcon, BarChart3, MessageSquare, FileText, LogOut,
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/hero-manager", label: "Slider Home", icon: ImageIcon },
+  { href: "/admin/publikasi-manager", label: "Publikasi / Buletin", icon: FileText },
   { href: "/admin/prakiraan-manager", label: "Prakiraan", icon: ImageIcon },
   { href: "/admin/kegiatan-manager", label: "Dokumentasi Kegiatan", icon: ImageIcon },
   { href: "/admin/buku-tamu", label: "Data Buku Tamu", icon: MessageSquare },
