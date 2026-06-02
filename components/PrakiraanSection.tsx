@@ -54,23 +54,32 @@ export default function PrakiraanSection() {
       try {
         const res = await fetch("/api/admin/prakiraan-images");
         const json = await res.json();
-        if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          if (mounted && json?.success && Array.isArray(json.data) && json.data.length > 0) {
           const items: any[] = json.data;
-          const byCategory: Record<number, any> = {};
+          // group items by category (title prefixed with category id)
+          const byCategory: Record<number, any[]> = {};
           items.forEach((it) => {
             const m = String(it.title || '').match(/^(\d+)/);
-            if (m) {
-              const cat = parseInt(m[1], 10);
-              if (!Number.isNaN(cat)) byCategory[cat] = it;
+            const key = m ? parseInt(m[1], 10) : null;
+            if (key && !Number.isNaN(key)) {
+              if (!byCategory[key]) byCategory[key] = [];
+              byCategory[key].push(it);
             }
           });
-          const updated = defaultForecastCards.map((card, idx) => ({
-            ...card,
-            image: byCategory[idx + 1]?.url || card.image,
-            desc: byCategory[idx + 1]?.explanation || '',
-            created_at: byCategory[idx + 1]?.created_at || byCategory[idx + 1]?.createdAt || null,
-            details: byCategory[idx + 1]?.details || [],
-          }));
+
+          const updated = defaultForecastCards.map((card, idx) => {
+            const cat = idx + 1;
+            const entries = byCategory[cat] || [];
+            return {
+              ...card,
+              // preserve single-image API (first entry) for backward compatibility
+              image: entries[0]?.url || card.image,
+              images: entries.map((e: any) => ({ url: e.url, explanation: e.explanation || '' })),
+              desc: entries[0]?.explanation || card.desc || '',
+              created_at: entries[0]?.created_at || entries[0]?.createdAt || null,
+              details: entries[0]?.details || [],
+            };
+          });
           setForecastCards(updated);
         }
       } catch (e) {
@@ -143,8 +152,8 @@ export default function PrakiraanSection() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-6">
                 <div>
-                  <h3 className="text-white font-bold text-2xl mb-2 leading-tight">Informasi & Pamflet</h3>
-                  <p className="text-blue-100 text-sm mb-4 leading-relaxed max-w-md">Kumpulan pamflet dan pengumuman; berganti otomatis setiap 15 detik.</p>
+                  <h3 className="text-white font-bold text-2xl mb-2 leading-tight">Display Informasi Terbaru</h3>
+                  <p className="text-blue-100 text-sm mb-4 leading-relaxed max-w-md">Kumpulan display dan pengumuman; berganti otomatis setiap 15 detik.</p>
                 </div>
               </div>
             </div>
@@ -199,6 +208,7 @@ export default function PrakiraanSection() {
             title: selectedForecast.title,
             desc: '',
             image: selectedForecast.image,
+            images: (selectedForecast as any).images || [],
             details: (selectedForecast as any).details || [],
             explanation: (selectedForecast as any).desc || '',
             lastUpdated: (selectedForecast as any).created_at || "18 Mei 2024, 12:01 WIB",

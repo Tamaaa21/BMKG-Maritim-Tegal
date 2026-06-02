@@ -4,19 +4,7 @@ import { useState, useEffect } from "react";
 import { Wind, Droplets, Eye, ArrowUp, Cloud, Thermometer, AlertTriangle, Satellite, Waves, BarChart2, Phone, Loader } from "lucide-react";
 import HeroBackgroundSlideshow from "./HeroBackgroundSlideshow";
 
-const quickLinks = [
-  { icon: AlertTriangle, label: "Prakiraan", sub: "Cuaca Terkini", color: "text-yellow-400" },
-  { icon: AlertTriangle, label: "Peringatan Dini", sub: "Informasi Waspada", color: "text-orange-400" },
-  { icon: Waves, label: "Ocean Forecast", sub: "Prediksi Gelombang", color: "text-blue-400" },
-  { icon: Satellite, label: "Satelit Cuaca", sub: "Citra Terkini", color: "text-green-400" },
-];
 
-const bottomLinks = [
-  { icon: BarChart2, label: "Data & Informasi", sub: "Real-time" },
-  { icon: Cloud, label: "Layanan", sub: "Informasi Layanan" },
-  { icon: Phone, label: "Kegiatan", sub: "Dokumentasi" },
-  { icon: Phone, label: "Kontak", sub: "Hubungi Kami" },
-];
 
 interface WeatherData {
   city: string;
@@ -139,7 +127,7 @@ export default function HeroSection() {
                 Lihat Prakiraan
               </a>
               <a
-                href="#layanan"
+                href="https://www.bmkg.go.id/cuaca/peringatan-dini-cuaca"
                 className="px-6 py-2.5 bg-white/15 backdrop-blur-sm hover:bg-white/25 text-white text-sm font-semibold rounded-full border border-white/30 transition-all duration-200"
               >
                 Peringatan Dini
@@ -186,7 +174,9 @@ export default function HeroSection() {
               <div>
                 <div className="flex items-start">
                   <span className="text-white text-6xl font-bold leading-none">{weatherData.temp}</span>
-                  <span className="text-white text-2xl font-light mt-2">°C</span>
+                  <span className="text-white text-2xl font-light mt-2">
+                    °C
+                  </span>
                 </div>
                 <p className="text-blue-200 text-sm mt-1">{weatherData.condition}</p>
               </div>
@@ -228,40 +218,7 @@ export default function HeroSection() {
       </div>
 
       {/* Quick Links Bar */}
-      <div className="relative z-10 bg-[#001a66]/80 backdrop-blur-sm border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-6 md:px-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
-            {quickLinks.map((item) => (
-              <a
-                key={item.label}
-                href="#"
-                className="flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition-colors group"
-              >
-                <item.icon size={20} className={`${item.color} flex-shrink-0`} />
-                <div>
-                  <p className="text-white text-xs font-semibold group-hover:text-yellow-400 transition-colors">{item.label}</p>
-                  <p className="text-blue-300 text-xs">{item.sub}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10 border-t border-white/10">
-            {bottomLinks.map((item) => (
-              <a
-                key={item.label}
-                href="#"
-                className="flex items-center gap-3 px-4 py-4 hover:bg-white/5 transition-colors group"
-              >
-                <item.icon size={18} className="text-blue-300 flex-shrink-0" />
-                <div>
-                  <p className="text-white text-xs font-semibold group-hover:text-yellow-400 transition-colors">{item.label}</p>
-                  <p className="text-blue-300 text-xs">{item.sub}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
+      
     </section>
   );
 }

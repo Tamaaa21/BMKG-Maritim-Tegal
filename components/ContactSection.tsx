@@ -81,18 +81,17 @@ export default function ContactSection() {
           </div>
 
           {/* Right: Google Maps */}
-          <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-100" style={{ minHeight: "400px" }}>
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.7!2d109.1407!3d-6.8694!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6fb7a01f31db13%3A0x5027a76e356fd40!2sStasiun%20Meteorologi%20Maritim%20Tegal!5e0!3m2!1sid!2sid!4v1715000000000!5m2!1sid!2sid"
-              width="100%"
-              height="400"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Lokasi Stasiun Meteorologi Maritim Tegal"
-            />
-          </div>
+          <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-100 h-64 md:h-[400px]">
+  <iframe
+    src="https://maps.google.com/maps?q=BMKG%20Kota%20Tegal&t=&z=15&ie=UTF8&iwloc=&output=embed"
+    className="w-full h-full"
+    style={{ border: 0 }}
+    allowFullScreen
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+    title="Lokasi BMKG Kota Tegal"
+  />
+</div>
         </div>
       </div>
     </section>

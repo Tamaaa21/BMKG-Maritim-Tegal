@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Upload, Trash } from "lucide-react";
+import { kegiatanCategories } from "@/components/kegiatanCategories";
 
 export default function KegiatanManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -11,7 +12,7 @@ export default function KegiatanManager() {
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [category, setCategory] = useState("");
-  const categories = ["Seminar", "Pelatihan", "Kegiatan Lapangan", "Pengabdian", "Lainnya"];
+  const categories = kegiatanCategories;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
 

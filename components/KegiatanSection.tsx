@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
-
-const categories = ["Semua", "Sosialisasi", "Kunjungan", "Pengamatan", "Lainnya"];
+import { kegiatanTabs } from "@/components/kegiatanCategories";
 
 const activities = [
   {
@@ -95,7 +94,7 @@ export default function KegiatanSection() {
 
         {/* Category Tabs */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {categories.map((cat) => (
+          {kegiatanTabs.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}

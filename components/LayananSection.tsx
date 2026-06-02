@@ -11,7 +11,7 @@ const services = [
     icon: CreditCard,
     title: "Layanan Berbayar",
     subtitle: "(PNBP)",
-    desc: "Layanan informasi meteorologi, klimatologi, dan geofisika yang diberikan secara gratis untuk mendukung keselamatan yang membutuhkan biaya sesuai ketentuan.",
+    desc: "Layanan informasi meteorologi, klimatologi, dan geofisika yang diberikan untuk mendukung keselamatan yang membutuhkan biaya sesuai ketentuan.",
     iconBg: "bg-emerald-100",
     iconColor: "text-emerald-600",
     accent: "border-emerald-200",
@@ -83,7 +83,7 @@ export default function LayananSection() {
                 {!svc.subtitle && <div className="mb-3" />}
                 <p className="text-gray-500 text-sm leading-relaxed flex-1">{svc.desc}</p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm text-[#003399] font-semibold group-hover:gap-2 transition-all">
-                  Selengkapnya <ChevronRight size={14} />
+                  Klik Di Sini <ChevronRight size={14} />
                 </span>
               </button>
             );

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface PrakiraanModalProps {
   isOpen: boolean;
@@ -9,7 +10,8 @@ interface PrakiraanModalProps {
   data?: {
     title: string;
     desc: string;
-    image: string;
+    image?: string;
+    images?: { url: string; explanation?: string }[];
     details?: {
       label: string;
       value: string;
@@ -21,6 +23,10 @@ interface PrakiraanModalProps {
 
 export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModalProps) {
   if (!isOpen || !data) return null;
+  const images = data.images && data.images.length > 0 ? data.images : (data.image ? [{ url: data.image, explanation: data.explanation || '' }] : []);
+  const [index, setIndex] = useState<number>(0);
+  const prev = () => setIndex((i: number) => (i - 1 + images.length) % images.length);
+  const next = () => setIndex((i: number) => (i + 1) % images.length);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -39,13 +45,40 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
           <X size={20} className="text-gray-700" />
         </button>
 
-        {/* Left Side - Image (50%) */}
-        <div className="lg:w-1/2 w-full h-64 lg:h-auto relative overflow-hidden bg-gray-100">
-          <img src={data.image} alt={data.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-            <h3 className="text-xl font-bold">{data.title}</h3>
+        {/* Left Side - Image Slider (50%) */}
+        <div className="lg:w-1/2 w-full h-64 lg:h-auto relative overflow-hidden bg-gray-100 flex flex-col">
+          <div className="relative flex-1 w-full">
+            {images.length > 0 ? (
+              <>
+                <img src={images[index].url} alt={`${data.title} - ${index + 1}`} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
+                  <div className="text-white">
+                    <h3 className="text-xl font-bold">{data.title}</h3>
+                    <p className="text-sm opacity-90">{images[index].explanation || data.explanation || ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={prev} className="w-9 h-9 bg-white/60 rounded-full flex items-center justify-center text-gray-700">◀</button>
+                    <span className="text-white text-sm">{index + 1}/{images.length}</span>
+                    <button onClick={next} className="w-9 h-9 bg-white/60 rounded-full flex items-center justify-center text-gray-700">▶</button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">No image</div>
+            )}
           </div>
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div className="p-3 bg-white flex gap-2 overflow-x-auto">
+              {images.map((it, i) => (
+                <button key={i} onClick={() => setIndex(i)} className={`flex-shrink-0 w-20 h-12 overflow-hidden rounded-md border ${i === index ? 'ring-2 ring-offset-1 ring-[#003399]' : 'border-gray-200'}`}>
+                  <img src={it.url} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Side - Details (50%) */}
