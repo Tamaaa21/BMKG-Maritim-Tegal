@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, ImageIcon, BarChart3, MessageSquare, FileText, LogOut, Menu, X, Bell, Trash2 } from "lucide-react";
+import { LayoutDashboard, ImageIcon, BarChart3, MessageSquare, FileText, LogOut, Menu, X, Bell, Trash2, Settings } from "lucide-react";
 import { NotificationProvider, useNotification } from "@/components/NotificationProvider";
 import { AdminRealtimeProvider } from "@/components/AdminRealtimeProvider";
 import supabase from "@/lib/supabaseBrowser";
@@ -12,9 +12,11 @@ const navItems = [
   { href: "/admin/hero-manager", label: "Slider Home", icon: ImageIcon },
   { href: "/admin/publikasi-manager", label: "Publikasi / Buletin", icon: FileText },
   { href: "/admin/prakiraan-manager", label: "Prakiraan", icon: ImageIcon },
+  { href: "/admin/display-manager", label: "Kelola Display", icon: ImageIcon },
   { href: "/admin/kegiatan-manager", label: "Dokumentasi Kegiatan", icon: ImageIcon },
   { href: "/admin/buku-tamu", label: "Data Buku Tamu", icon: MessageSquare },
-  { href: "/admin/layanan", label: "Data Layanan", icon: FileText },
+  { href: "/admin/layanan", label: "Kelola Layanan", icon: FileText },
+  { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -82,7 +84,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const token = localStorage.getItem("adminToken");
+      const token = sessionStorage.getItem("adminToken");
       // Debug: ensure we never stay loading indefinitely
       if (!token) {
         setIsLoggedIn(false);
@@ -96,7 +98,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     } catch (err) {
-      // If localStorage access fails for any reason, stop loading and redirect to login
+      // If sessionStorage access fails for any reason, stop loading and redirect to login
       // eslint-disable-next-line no-console
       console.error("Error checking admin token:", err);
       setIsLoggedIn(false);
@@ -111,7 +113,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminToken");
     } catch (e) {
       // ignore
     }
@@ -143,9 +145,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-56 bg-[#003399] text-white transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-56 bg-[#003399] text-white transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -163,11 +164,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <a
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap sm:whitespace-normal ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "text-blue-100 hover:bg-white/10"
-                  }`}
+                  className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap sm:whitespace-normal ${isActive
+                    ? "bg-white/20 text-white"
+                    : "text-blue-100 hover:bg-white/10"
+                    }`}
                 >
                   <Icon size={18} className="flex-shrink-0" />
                   <span className="text-xs sm:text-sm font-medium">{item.label}</span>
@@ -202,7 +202,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex-1" />
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="relative">
-              <button
+              {/* <button
                 onClick={() => setNotifOpen(!notifOpen)}
                 className="p-2 rounded-lg hover:bg-gray-100"
                 aria-label="Notifikasi"
@@ -213,7 +213,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     {notifications.length}
                   </span>
                 )}
-              </button>
+              </button> */}
 
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">

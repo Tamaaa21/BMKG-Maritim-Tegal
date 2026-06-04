@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 const ADMIN_CREDENTIALS = {
   username: "admin",
@@ -9,7 +11,21 @@ export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
 
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+    let expectedPassword = ADMIN_CREDENTIALS.password;
+    try {
+      const configPath = path.join(process.cwd(), "data", "admin_config.json");
+      if (fs.existsSync(configPath)) {
+        const raw = fs.readFileSync(configPath, "utf-8");
+        const config = JSON.parse(raw);
+        if (config && config.password) {
+          expectedPassword = config.password;
+        }
+      }
+    } catch (e) {
+      console.error("Error reading admin_config.json", e);
+    }
+
+    if (username === ADMIN_CREDENTIALS.username && password === expectedPassword) {
       const token = Buffer.from(`${username}:${Date.now()}`).toString("base64");
 
       return NextResponse.json(

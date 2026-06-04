@@ -7,10 +7,24 @@
     "uploader": "admin"
   },
   {
-    "id": "1780197786857",
-    "url": "/uploads/pamflets/pamflet-1780197786855-warningg.png",
+    "id": "1780546640601",
+    "url": "/uploads/pamflets/pamflet-1780546640600-WhatsApp_Image_2026-06-04_at_08.38.15.jpeg",
     "title": "Pamflet",
     "order": 2,
+    "uploader": "admin"
+  },
+  {
+    "id": "1780546781659",
+    "url": "/uploads/pamflets/pamflet-1780546781659-WhatsApp_Image_2026-06-04_at_08.38.19.jpeg",
+    "title": "Pamflet",
+    "order": 3,
+    "uploader": "admin"
+  },
+  {
+    "id": "1780546889857",
+    "url": "/uploads/pamflets/pamflet-1780546889856-mobilbmkg.jpeg",
+    "title": "Pamflet",
+    "order": 4,
     "uploader": "admin"
   }
 ]

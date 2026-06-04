@@ -55,7 +55,6 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                   <div className="text-white">
                     <h3 className="text-xl font-bold">{data.title}</h3>
-                    <p className="text-sm opacity-90">{images[index].explanation || data.explanation || ''}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={prev} className="w-9 h-9 bg-white/60 rounded-full flex items-center justify-center text-gray-700">◀</button>
@@ -105,9 +104,10 @@ export default function PrakiraanModal({ isOpen, onClose, data }: PrakiraanModal
             {/* Explanation */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-2 text-sm">Penjelasan Detail</h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {data.explanation || data.desc || 'Penjelasan belum tersedia.'}
-              </p>
+              <div 
+                className="text-gray-700 text-sm leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_a]:text-blue-600 [&_a]:underline break-words"
+                dangerouslySetInnerHTML={{ __html: (images && images[index] && (images[index].explanation || '')) || data.explanation || data.desc || 'Penjelasan belum tersedia.' }}
+              />
             </div>
 
             {/* Last Updated */}

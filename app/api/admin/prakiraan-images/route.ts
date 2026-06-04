@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
@@ -24,12 +25,14 @@ export async function POST(req: Request) {
       const explanation = body.explanation || null;
       const providedUrl = body.url;
       const uploader = body.uploader || null;
+      const waktuBerakhir = body.waktu_berakhir || body.waktuBerakhir || null;
 
       if (!providedUrl) return NextResponse.json({ success: false, message: 'No url provided' }, { status: 400 });
 
       const insertObj: any = { title, url: providedUrl };
       if (explanation) insertObj.explanation = explanation;
       if (uploader) insertObj.uploader = uploader;
+      if (waktuBerakhir) insertObj.waktu_berakhir = waktuBerakhir;
 
       const { data: insertData, error: insertError } = await supabase.from('prakiraan_images').insert(insertObj).select().single();
       if (insertError) throw insertError;
@@ -42,6 +45,7 @@ export async function POST(req: Request) {
     const title = (form.get('title') as any)?.toString() || file?.name || `prakiraan-${Date.now()}`;
     const explanation = (form.get('explanation') as any)?.toString() || null;
     const uploader = (form.get('uploader') as any)?.toString() || null;
+    const waktuBerakhir = (form.get('waktu_berakhir') as any)?.toString() || (form.get('waktuBerakhir') as any)?.toString() || null;
 
     if (!file) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
@@ -84,6 +88,7 @@ export async function POST(req: Request) {
     const insertObj: any = { title, url: publicUrl };
     if (explanation) insertObj.explanation = explanation;
     if (uploader) insertObj.uploader = uploader;
+    if (waktuBerakhir) insertObj.waktu_berakhir = waktuBerakhir;
 
     const { data: insertData, error: insertError } = await supabase.from('prakiraan_images').insert(insertObj).select().single();
 
@@ -96,7 +101,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -106,8 +111,19 @@ export async function GET() {
       return NextResponse.json({ success: false, data: [] }, { status: 500 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const filterExpired = searchParams.get("filterExpired") === "true";
+
     const supabase = createClient(url, serviceKey as string);
-    const { data, error } = await supabase.from("prakiraan_images").select("*").order("created_at", { ascending: true });
+    
+    let query = supabase.from("prakiraan_images").select("*");
+    
+    if (filterExpired) {
+      const nowStr = new Date().toISOString();
+      query = query.or(`waktu_berakhir.is.null,waktu_berakhir.gt.${nowStr}`);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: true });
     if (error) throw error;
     return NextResponse.json({ success: true, data: data || [] });
   } catch (error: any) {

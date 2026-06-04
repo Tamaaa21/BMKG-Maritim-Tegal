@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 export default function WhatsAppFloating() {
   const pathname = usePathname();
 
-  // hide floating WA on admin routes
-  if (pathname && pathname.startsWith("/admin")) return null;
+  // hide floating WA on admin, display, and buku tamu routes
+  if (pathname && (pathname.startsWith("/admin") || pathname === "/display" || pathname === "/dislay" || pathname === "/buku_tamu")) return null;
 
-  const phone = "628112636067"; // Indonesian full international format without +
+  const phone = "628112562200"; // Indonesian full international format without +
   const text = encodeURIComponent("Halo Stasiun Meteorologi Maritim Tegal, saya ingin bertanya tentang layanan.");
   const href = `https://wa.me/${phone}?text=${text}`;
 

@@ -8,11 +8,12 @@ const FALLBACK_DATA = {
   city: 'Perairan Tegal, Jawa Tengah',
   temp: 29,
   condition: 'Cerah Berawan',
-  wind: { speed: 4, direction: 'Timur' },
+  wind: { speed_kmh: 7, speed_knots: 4, direction_from: 'Timur' },
   humidity: 75,
   waves: 0.2,
   tide: 'Naik',
   tideTime: '20.00 WIB',
+  current: { speed_knots: 0.9, speed_kmh: 1.7, direction_to: 'Barat' },
   updated: new Date().toISOString(),
 };
 
@@ -82,14 +83,26 @@ function parseHTMLWithCheerio($: any) {
     // Look for condition (Cuaca/Kondisi)
     const conditionText = $('[class*="cuaca"], [class*="weather"], [class*="kondisi"]').first().text() || 'Cerah Berawan';
 
-    // Look for wind speed (Kecepatan Angin)
-    const windMatch = $('body').html()?.match(/Kecepatan\s+Angin[:\s]*(\d+)\s*knots?/i) ||
-                      $('body').html()?.match(/Angin[:\s]*(\d+)\s*knots?/i);
-    const windSpeed = windMatch ? parseInt(windMatch[1]) * 1.852 : 4; // Convert knots to km/h
+    // Look for wind speed (Kecepatan Angin) and direction
+    const windKnotsMatch = $('body').html()?.match(/Kecepatan\s+Angin[:\s]*(\d+(?:\.\d+)?)\s*knots?/i) ||
+                 $('body').html()?.match(/Angin[:\s]*(\d+(?:\.\d+)?)\s*knots?/i);
+    const windKnots = windKnotsMatch ? parseFloat(windKnotsMatch[1]) : 4;
+    const windSpeed = Math.round(windKnots * 1.852); // Convert knots to km/h
+
+    // Look for wind direction phrasing
+    const windDirMatch = $('body').html()?.match(/Arah Angin dari[:\s]*([A-Za-z\s]+)/i) ||
+               $('body').html()?.match(/Arah Angin[:\s]*([A-Za-z\s]+)/i);
+    const windDir = windDirMatch ? windDirMatch[1].trim() : 'Timur';
 
     // Look for waves (Gelombang)
     const waveMatch = $('body').html()?.match(/Gelombang[:\s]*(\d+(?:\.\d+)?)\s*m/i);
     const waves = waveMatch ? parseFloat(waveMatch[1]) : 0.2;
+
+    // Look for current (Kecepatan Arus) and direction to
+    const currentKnotsMatch = $('body').html()?.match(/Kecepatan\s+Arus[:\s]*(\d+(?:\.\d+)?)\s*knots?/i);
+    const currentKnots = currentKnotsMatch ? parseFloat(currentKnotsMatch[1]) : null;
+    const currentDirMatch = $('body').html()?.match(/Arah\s+Arus\s*(?:ke|:)?[:\s]*([A-Za-z\s]+)/i);
+    const currentDir = currentDirMatch ? currentDirMatch[1].trim() : null;
 
     // Look for tide info
     const tideMatch = $('body').html()?.match(/Pasang\s*Surut[:\s]*(\w+)/i);
@@ -100,13 +113,15 @@ function parseHTMLWithCheerio($: any) {
       temp,
       condition: conditionText.trim() || 'Cerah Berawan',
       wind: {
-        speed: Math.round(windSpeed),
-        direction: 'Timur',
+        speed_kmh: Math.round(windSpeed),
+        speed_knots: Math.round(windKnots),
+        direction_from: windDir,
       },
       humidity: 75,
       waves,
       tide,
       tideTime: '20.00 WIB',
+      current: currentKnots != null ? { speed_knots: currentKnots, speed_kmh: Math.round(currentKnots * 1.852), direction_to: currentDir || '—' } : null,
       updated: new Date().toISOString(),
     };
 
@@ -139,15 +154,21 @@ function parseHTMLManual(html: string) {
     }
 
     // Extract wind (in knots)
-    const windMatch = html.match(/(?:Kecepatan\s+Angin|Angin)[:\s]*(\d+)\s*(?:knots?|kt)/i);
-    const windSpeed = windMatch ? Math.round(parseInt(windMatch[1]) * 1.852) : 4;
+    // Extract wind (in knots) and direction
+    const windKnotsMatch = html.match(/(?:Kecepatan\s+Angin|Angin)[:\s]*(\d+(?:\.\d+)?)\s*(?:knots?|kt)/i);
+    const windKnots = windKnotsMatch ? parseFloat(windKnotsMatch[1]) : 4;
+    const windSpeed = Math.round(windKnots * 1.852);
 
-    // Extract wind direction
+    // Extract wind direction (Arah Angin dari)
     let windDir = 'Timur';
-    const dirMatches = html.match(/(Utara|Timur|Selatan|Barat)(?:\s+(?:Timur|Selatan|Barat|Laut|Daya))?/gi);
-    if (dirMatches) {
-      windDir = dirMatches[0];
-    }
+    const windDirMatch = html.match(/Arah Angin dari[:\s]*([A-Za-z\s]+)/i) || html.match(/Arah Angin[:\s]*([A-Za-z\s]+)/i);
+    if (windDirMatch) windDir = windDirMatch[1].trim();
+
+    // Extract current (arus)
+    const currentKnotsMatch = html.match(/Kecepatan\s+Arus[:\s]*(\d+(?:\.\d+)?)\s*knots?/i);
+    const currentKnots = currentKnotsMatch ? parseFloat(currentKnotsMatch[1]) : null;
+    const currentDirMatch = html.match(/Arah\s+Arus\s*(?:ke|:)?[:\s]*([A-Za-z\s]+)/i);
+    const currentDir = currentDirMatch ? currentDirMatch[1].trim() : null;
 
     // Extract waves
     const waveMatch = html.match(/Gelombang[:\s]*(\d+(?:\.\d+)?)\s*m/i);
@@ -161,11 +182,12 @@ function parseHTMLManual(html: string) {
       city: 'Perairan Tegal, Jawa Tengah',
       temp,
       condition,
-      wind: { speed: windSpeed, direction: windDir },
+      wind: { speed_kmh: windSpeed, speed_knots: Math.round(windKnots), direction_from: windDir },
       humidity: 75,
       waves,
       tide,
       tideTime: formatTime(),
+      current: currentKnots != null ? { speed_knots: currentKnots, speed_kmh: Math.round(currentKnots * 1.852), direction_to: currentDir || '—' } : null,
       updated: new Date().toISOString(),
     };
   } catch (err) {

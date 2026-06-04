@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Upload, Trash, Plus } from "lucide-react";
+import { Input } from '@/components/ui/input';
 
 export default function PamfletManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -28,7 +29,7 @@ export default function PamfletManager() {
       if (addingUrl) form.append('url', addingUrl);
       // attach uploader info from adminToken (format: base64(username:ts))
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+        const token = typeof window !== 'undefined' ? sessionStorage.getItem('adminToken') : null;
         if (token) {
           const decoded = atob(token);
           const username = decoded.split(':')[0];
@@ -62,7 +63,7 @@ export default function PamfletManager() {
           <input type="file" accept="image/*" onChange={(e)=>setFile(e.target.files?.[0]||null)} className="hidden" />
         </label>
         <div className="flex items-center gap-2">
-          <input value={addingUrl} onChange={e=>setAddingUrl(e.target.value)} placeholder="Atau tempel URL gambar" className="flex-1 border rounded-md p-2" />
+          <Input value={addingUrl} onChange={e=>setAddingUrl(e.target.value)} placeholder="Atau tempel URL gambar" className="flex-1" />
           <button onClick={handleUpload} disabled={loading} className="px-4 py-2 bg-[#003399] text-white rounded-md">{loading? 'Mengirim...':'Tambah'}</button>
         </div>
       </div>
