@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Upload, Trash } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { kegiatanCategories } from "@/components/kegiatanCategories";
 
 export default function KegiatanManager() {
   const [items, setItems] = useState<any[]>([]);
@@ -11,7 +14,7 @@ export default function KegiatanManager() {
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [category, setCategory] = useState("");
-  const categories = ["Seminar", "Pelatihan", "Kegiatan Lapangan", "Pengabdian", "Lainnya"];
+  const categories = kegiatanCategories;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
 
@@ -66,17 +69,17 @@ export default function KegiatanManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Judul</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="mt-1 block w-full border rounded-md p-2" />
+            <Input value={title} onChange={e => setTitle(e.target.value)} className="mt-1" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Tanggal Kegiatan</label>
-            <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="mt-1 block w-full border rounded-md p-2" />
+            <Input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="mt-1" />
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Kategori</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 block w-full border rounded-md p-2">
+            <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border border-input px-3 py-2 text-sm">
               <option value="">Pilih kategori</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -84,7 +87,7 @@ export default function KegiatanManager() {
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 block w-full border rounded-md p-2" rows={3} />
+          <Textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1" rows={3} />
         </div>
 
         <div className="mt-4 flex items-center gap-3">
@@ -105,7 +108,7 @@ export default function KegiatanManager() {
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 {editingId === item.id ? (
-                  <input className="font-semibold w-2/3 border-b" value={editValues.title || ''} onChange={e => setEditValues({...editValues, title: e.target.value})} />
+                  <Input className="font-semibold w-2/3 border-b" value={editValues.title || ''} onChange={e => setEditValues({...editValues, title: e.target.value})} />
                 ) : (
                   <h3 className="font-semibold">{item.title}</h3>
                 )}
@@ -145,11 +148,11 @@ export default function KegiatanManager() {
                 </div>
               </div>
               {editingId === item.id ? (
-                <div className="mt-2">
-                  <textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full border rounded p-2" rows={2} />
+                  <div className="mt-2">
+                  <Textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full" rows={2} />
                   <div className="flex gap-2 mt-2">
-                    <input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="border rounded p-2" />
-                    <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="border rounded p-2">
+                    <Input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="w-48" />
+                    <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="rounded-md border border-input px-3 py-2 text-sm">
                       <option value="">Pilih kategori</option>
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>

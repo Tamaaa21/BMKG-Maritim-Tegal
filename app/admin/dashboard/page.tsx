@@ -1,166 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import supabase from "@/lib/supabaseBrowser";
 import { MessageSquare, FileText, ImageIcon } from "lucide-react";
-import { useNotification } from "@/components/NotificationProvider";
+import { useAdminRealtime } from "@/components/AdminRealtimeProvider";
+import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
-  const { showNotification } = useNotification();
-  const [stats, setStats] = useState({
-    bukuTamu: 0,
-    layananBerbayar: 0,
-    layananNolRupiah: 0,
-  });
+  const { stats } = useAdminRealtime();
 
-  useEffect(() => {
-    const client = supabase;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-    const retryFetch = async (input: string, attempts = 3, delayMs = 500): Promise<Response> => {
-      let lastErr: any;
-      for (let i = 0; i < attempts; i++) {
-        try {
-          const res = await fetch(input);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res;
-        } catch (err) {
-          lastErr = err;
-          if (i < attempts - 1) await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
-        }
-      }
-      throw lastErr;
-    };
-    if (!client) {
-      // fallback to previous polling behaviour via APIs
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-      const retryFetch = async (input: string, attempts = 3, delayMs = 500): Promise<Response> => {
-        let lastErr: any;
-        for (let i = 0; i < attempts; i++) {
-          try {
-            const res = await fetch(input);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res;
-          } catch (err) {
-            lastErr = err;
-            if (i < attempts - 1) await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
-          }
-        }
-        throw lastErr;
-      };
-
-      const fetchStatsFallback = async () => {
-        try {
-          const [bukuTamuRes, berbayarRes, nolRupiahRes] = await Promise.all([
-            retryFetch(`${origin}/api/admin/stats/buku-tamu`),
-            retryFetch(`${origin}/api/admin/stats/layanan-berbayar`),
-            retryFetch(`${origin}/api/admin/stats/layanan-nol-rupiah`),
-          ]);
-
-          const bukuTamu = await bukuTamuRes.json();
-          const berbayar = await berbayarRes.json();
-          const nolRupiah = await nolRupiahRes.json();
-
-          setStats({
-            bukuTamu: bukuTamu.count || 0,
-            layananBerbayar: berbayar.count || 0,
-            layananNolRupiah: nolRupiah.count || 0,
-          });
-        } catch (error) {
-          console.error("Error fetching stats fallback:", error);
-        }
-      };
-      fetchStatsFallback();
-      return;
-    }
-
-    // initial counts via APIs (safe, keeps logic centralized)
-    let mounted = true;
-    const fetchInitial = async () => {
-      try {
-        const [bukuTamuRes, berbayarRes, nolRupiahRes] = await Promise.all([
-          retryFetch(`${origin}/api/admin/stats/buku-tamu`),
-          retryFetch(`${origin}/api/admin/stats/layanan-berbayar`),
-          retryFetch(`${origin}/api/admin/stats/layanan-nol-rupiah`),
-        ]);
-
-        const bukuTamu = await bukuTamuRes.json();
-        const berbayar = await berbayarRes.json();
-        const nolRupiah = await nolRupiahRes.json();
-
-        if (!mounted) return;
-        setStats({
-          bukuTamu: bukuTamu.count || 0,
-          layananBerbayar: berbayar.count || 0,
-          layananNolRupiah: nolRupiah.count || 0,
-        });
-      } catch (error) {
-        console.error("Error fetching initial stats:", error);
-        showNotification("Gagal memuat data statistik", "error", 5000);
-      }
-    };
-    fetchInitial();
-
-    // subscribe to INSERT events for realtime updates
-    const bukuSub = client
-      .channel("public:buku_tamu")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "buku_tamu" },
-        () => {
-          setStats((s) => ({ ...s, bukuTamu: s.bukuTamu + 1 }));
-          showNotification("Data Buku Tamu baru masuk", "success", 4000);
-        }
-      )
-      .subscribe();
-
-    const berbayarSub = client
-      .channel("public:layanan_berbayar")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "layanan_berbayar" },
-        () => {
-          setStats((s) => ({ ...s, layananBerbayar: s.layananBerbayar + 1 }));
-          showNotification("Layanan Berbayar baru masuk", "success", 4000);
-        }
-      )
-      .subscribe();
-
-    const nolSub = client
-      .channel("public:layanan_nol_rupiah")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "layanan_nol_rupiah" },
-        () => {
-          setStats((s) => ({ ...s, layananNolRupiah: s.layananNolRupiah + 1 }));
-          showNotification("Layanan Nol Rupiah baru masuk", "success", 4000);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      mounted = false;
-      try {
-        if (client) {
-          client.removeChannel(bukuSub);
-          client.removeChannel(berbayarSub);
-          client.removeChannel(nolSub);
-        }
-      } catch (e) {
-        // fallback unsubscribe
-        try {
-          bukuSub.unsubscribe();
-        } catch {}
-        try {
-          berbayarSub.unsubscribe();
-        } catch {}
-        try {
-          nolSub.unsubscribe();
-        } catch {}
-      }
-    };
-  }, [showNotification]);
+ 
 
   const cards = [
     {
@@ -250,6 +97,8 @@ export default function AdminDashboard() {
           </a>
         </div>
       </div>
+
+     
     </div>
   );
 }

@@ -13,21 +13,21 @@ const contactInfo = [
   {
     icon: Phone,
     label: "Telepon",
-    value: "(0283) 356206",
+    value: "0811 2562 200",
     color: "text-blue-600",
     bg: "bg-blue-50",
   },
   {
     icon: MessageCircle,
     label: "WhatsApp",
-    value: "0811-2636-067",
+    value: "0811 2562 200 ",
     color: "text-green-600",
     bg: "bg-green-50",
   },
   {
     icon: Mail,
     label: "Email",
-    value: "stamar.tegal@bmkg.go.id",
+    value: "stamet.tegal@bmkg.go.id",
     color: "text-orange-500",
     bg: "bg-orange-50",
   },
@@ -70,7 +70,7 @@ export default function ContactSection() {
 
             {/* WhatsApp Button */}
             <a
-              href="https://wa.me/628112636067"
+              href="https://wa.me/628112562200"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-8 w-full flex items-center justify-center gap-3 py-3.5 bg-green-500 hover:bg-green-600 text-white font-bold text-sm rounded-xl transition-colors shadow-md shadow-green-200"
@@ -81,16 +81,15 @@ export default function ContactSection() {
           </div>
 
           {/* Right: Google Maps */}
-          <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-100" style={{ minHeight: "400px" }}>
+          <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-100 h-64 md:h-[400px]">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.7!2d109.1407!3d-6.8694!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6fb7a01f31db13%3A0x5027a76e356fd40!2sStasiun%20Meteorologi%20Maritim%20Tegal!5e0!3m2!1sid!2sid!4v1715000000000!5m2!1sid!2sid"
-              width="100%"
-              height="400"
+              src="https://maps.google.com/maps?q=BMKG%20Kota%20Tegal&t=&z=15&ie=UTF8&iwloc=&output=embed"
+              className="w-full h-full"
               style={{ border: 0 }}
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="Lokasi Stasiun Meteorologi Maritim Tegal"
+              title="Lokasi BMKG Kota Tegal"
             />
           </div>
         </div>

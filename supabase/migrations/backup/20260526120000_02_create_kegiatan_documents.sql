@@ -1,3 +1,4 @@
+-- backup of original 02_create_kegiatan_documents.sql
 -- Create kegiatan_documents table
 CREATE TABLE IF NOT EXISTS public.kegiatan_documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, LogIn } from "lucide-react";
+import { Input } from '@/components/ui/input';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      localStorage.setItem("adminToken", data.token);
+      sessionStorage.setItem("adminToken", data.token);
       router.push("/admin/dashboard");
     } catch (err) {
       setError("Terjadi kesalahan server");
@@ -71,24 +72,22 @@ export default function AdminLoginPage() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-            <input
+            <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Masukkan username"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003399]"
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-            <input
+            <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Masukkan password"
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003399]"
               required
             />
           </div>

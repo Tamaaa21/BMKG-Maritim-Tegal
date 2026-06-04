@@ -1,54 +1,54 @@
 "use client";
 
-import { ChevronRight, CreditCard, Gift, Shield, Star } from "lucide-react";
-import { useState } from "react";
-import BukuTamuModal from "./modals/BukuTamuModal";
-import LayananBerbayarModal from "./modals/LayananBerbayarModal";
-import LayananNolRupiahModal from "./modals/LayananNolRupiahModal";
+import { ChevronRight, CreditCard, Gift, Shield, Star, Info, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-const services = [
-  {
-    icon: CreditCard,
-    title: "Layanan Berbayar",
-    subtitle: "(PNBP)",
-    desc: "Layanan informasi meteorologi, klimatologi, dan geofisika yang diberikan secara gratis untuk mendukung keselamatan yang membutuhkan biaya sesuai ketentuan.",
-    iconBg: "bg-emerald-100",
-    iconColor: "text-emerald-600",
-    accent: "border-emerald-200",
-  },
-  {
-    icon: Gift,
-    title: "Layanan Nol Rupiah",
-    subtitle: "",
-    desc: "Layanan informasi yang diberikan secara gratis untuk mendukung keselamatan masyarakat.",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
-    accent: "border-blue-200",
-  },
-  {
-    icon: Shield,
-    title: "SPAK",
-    subtitle: "(Sarana Prasarana & Alat)",
-    desc: "Layanan pemeriksaan dan kalibrasi peralatan meteorologi sesuai standar yang berlaku.",
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-600",
-    accent: "border-orange-200",
-  },
-  {
-    icon: Star,
-    title: "IKM",
-    subtitle: "(Indeks Kepuasan Masyarakat)",
-    desc: "Berikan penilaian Anda terhadap layanan kami untuk terus meningkatkan kualitas.",
-    iconBg: "bg-yellow-100",
-    iconColor: "text-yellow-600",
-    accent: "border-yellow-200",
-  },
-];
+interface LayananCard {
+  id: string;
+  nama_layanan: string;
+  deskripsi: string;
+  url_google_form: string | null;
+}
 
-export default function LayananSection() {
-  const [bukuTamuOpen, setBukuTamuOpen] = useState(false);
-  const [layananBerbayarOpen, setLayananBerbayarOpen] = useState(false);
-  const [layananNolRupiahOpen, setLayananNolRupiahOpen] = useState(false);
+const icons = [CreditCard, Gift, Shield, Star];
+const bgColors = ["bg-emerald-100", "bg-blue-100", "bg-orange-100", "bg-yellow-100"];
+const iconColors = ["text-emerald-600", "text-blue-600", "text-orange-600", "text-yellow-600"];
+const borderColors = ["border-emerald-200", "border-blue-200", "border-orange-200", "border-yellow-200"];
+
+export default function LayananSection({ limit }: { limit?: number }) {
+  const [services, setServices] = useState<LayananCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const res = await fetch("/api/admin/layanan-cards");
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          setServices(json.data);
+        } else {
+          // If empty or success is false, use fallback empty state or default
+          setServices([]);
+        }
+      } catch (e) {
+        console.error("Gagal mengambil data layanan:", e);
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchServices();
+  }, []);
+
+  const handleCardClick = (url: string | null) => {
+    if (url && url.trim() !== "") {
+      window.open(url, "_blank");
+    } else {
+      setAlertOpen(true);
+    }
+  };
 
   return (
     <section id="layanan" className="py-20 bg-white">
@@ -61,55 +61,68 @@ export default function LayananSection() {
         </div>
 
         {/* Service Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {services.map((svc, i) => {
-            let onCardClick = () => {};
-            if (i === 0) onCardClick = () => setLayananBerbayarOpen(true);
-            else if (i === 1) onCardClick = () => setLayananNolRupiahOpen(true);
-
-            return (
-              <button
-                key={i}
-                onClick={onCardClick}
-                className={`bg-white border ${svc.accent} rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col text-left`}
-              >
-                <div className={`w-14 h-14 ${svc.iconBg} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
-                  <svc.icon size={26} className={svc.iconColor} />
-                </div>
-                <h3 className="text-gray-900 font-bold text-base mb-0.5">{svc.title}</h3>
-                {svc.subtitle && (
-                  <p className="text-gray-500 text-xs mb-3">{svc.subtitle}</p>
-                )}
-                {!svc.subtitle && <div className="mb-3" />}
-                <p className="text-gray-500 text-sm leading-relaxed flex-1">{svc.desc}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm text-[#003399] font-semibold group-hover:gap-2 transition-all">
-                  Selengkapnya <ChevronRight size={14} />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Buku Tamu Card */}
-        <div className="mb-8">
-          <button
-            onClick={() => setBukuTamuOpen(true)}
-            className="w-full bg-gradient-to-r from-[#003399] to-[#0055cc] hover:from-[#0044cc] hover:to-[#0066dd] text-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-gray-50 border border-gray-100 rounded-2xl p-6 h-64 animate-pulse flex flex-col justify-between">
+                <div className="w-14 h-14 bg-gray-200 rounded-2xl" />
+                <div className="h-5 bg-gray-200 rounded w-2/3 my-3" />
+                <div className="h-3 bg-gray-200 rounded w-full mb-2" />
+                <div className="h-3 bg-gray-200 rounded w-4/5" />
+                <div className="h-4 bg-gray-200 rounded w-1/3 mt-4" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">Buku Tamu</h3>
-                <p className="text-blue-100 text-sm">Daftar sebagai tamu dan kunjungi kami</p>
-              </div>
-              <ChevronRight size={20} className="flex-shrink-0" />
-            </div>
-          </button>
-        </div>
+            ))}
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mb-10">
+            <Info size={40} className="mx-auto text-gray-400 mb-3" />
+            <p className="text-gray-600 font-medium">Belum ada kartu layanan yang terdaftar.</p>
+            <p className="text-gray-400 text-sm mt-1">Admin dapat menambahkan layanan di Panel Admin.</p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center items-stretch gap-6 mb-10">
+            {(limit ? services.slice(0, limit) : services).map((svc, i) => {
+              const iconIdx = i % 4;
+              const IconComponent = icons[iconIdx];
+              const iconBg = bgColors[iconIdx];
+              const iconColor = iconColors[iconIdx];
+              const accent = borderColors[iconIdx];
+
+              return (
+                <button
+                  key={svc.id}
+                  onClick={() => handleCardClick(svc.url_google_form)}
+                  className={`w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white border ${accent} rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col text-left h-full`}
+                >
+                  <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
+                    <IconComponent size={26} className={iconColor} />
+                  </div>
+                  <h3 className="text-gray-900 font-bold text-base mb-2 group-hover:text-[#003399] transition-colors leading-snug">
+                    {svc.nama_layanan}
+                  </h3>
+                  <p className="text-gray-500 text-sm leading-relaxed flex-1">
+                    {svc.deskripsi}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm text-[#003399] font-semibold group-hover:gap-2 transition-all">
+                    Kunjungi Layanan <ChevronRight size={14} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Selanjutnya */}
+        {limit && (
+          <div className="mb-10 text-center">
+            <a
+              href="/layanan"
+              className="inline-flex items-center gap-2 px-8 py-3 border-2 border-[#003399] text-[#003399] hover:bg-[#003399] hover:text-white font-semibold text-sm rounded-full transition-all duration-200"
+            >
+              Selanjutnya <ChevronRight size={16} />
+            </a>
+          </div>
+        )}
 
         {/* Bottom Banner */}
         <div className="bg-gray-50 border border-gray-100 rounded-xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -118,22 +131,56 @@ export default function LayananSection() {
               <Shield size={16} className="text-[#003399]" />
             </div>
             <p className="text-gray-600 text-sm">
-              Untuk permohonan layanan dapat dilakukan secara online.
+              Untuk permohonan layanan dapat dilakukan secara online melalui tautan yang disediakan.
             </p>
           </div>
-          <button
-            onClick={() => setLayananBerbayarOpen(true)}
-            className="flex-shrink-0 px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white text-sm font-semibold rounded-full transition-colors"
-          >
-            Ajukan Layanan
-          </button>
         </div>
       </div>
 
-      {/* Modals */}
-      <BukuTamuModal isOpen={bukuTamuOpen} onClose={() => setBukuTamuOpen(false)} />
-      <LayananBerbayarModal isOpen={layananBerbayarOpen} onClose={() => setLayananBerbayarOpen(false)} />
-      <LayananNolRupiahModal isOpen={layananNolRupiahOpen} onClose={() => setLayananNolRupiahOpen(false)} />
+      {/* Alert Pop-up Modal */}
+      <AnimatePresence>
+        {alertOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setAlertOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setAlertOpen(false)}
+                className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+
+              {/* Icon */}
+              <div className="w-16 h-16 bg-blue-50 text-[#003399] rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100 shadow-inner">
+                <Info size={32} />
+              </div>
+
+              {/* Title & Message */}
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Halaman Belum Diperbarui</h3>
+              <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                Mohon maaf, halaman layanan ini belum diperbarui oleh admin.
+              </p>
+
+              {/* Action Button */}
+              <button
+                onClick={() => setAlertOpen(false)}
+                className="w-full py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg text-sm"
+              >
+                Mengerti
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

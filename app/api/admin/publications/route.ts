@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
     const file = form.get('file') as File | null;
+    const coverFile = form.get('coverFile') as File | null;
     const url = form.get('url')?.toString() || null;
+    const coverUrl = form.get('coverUrl')?.toString() || null;
     const title = form.get('title')?.toString() || '';
     const description = form.get('description')?.toString() || '';
     const uploader = form.get('uploader')?.toString() || null;
@@ -38,12 +40,29 @@ export async function POST(req: NextRequest) {
       storedUrl = `/uploads/publications/${filename}`;
     }
 
+    let storedCoverUrl = coverUrl || null;
+    if (coverFile && (coverFile as any).size) {
+      const buf = Buffer.from(await (coverFile as any).arrayBuffer());
+      const filename = `cover-${Date.now()}-${String((coverFile as any).name || 'cover')}`.replace(/[^a-zA-Z0-9.\-]/g, '_');
+      const outPath = path.join(UPLOAD_DIR, filename);
+      fs.writeFileSync(outPath, buf);
+      storedCoverUrl = `/uploads/publications/${filename}`;
+    }
+
     if (!storedUrl) return new Response(JSON.stringify({ success: false, error: 'No file or url provided' }), { status: 400 });
 
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     const list = JSON.parse(raw || '[]');
     const id = Date.now().toString();
-    const item: any = { id, url: storedUrl, title, description, order: list.length + 1, created_at: new Date().toISOString() };
+    const item: any = { 
+      id, 
+      url: storedUrl, 
+      cover_url: storedCoverUrl, 
+      title, 
+      description, 
+      order: list.length + 1, 
+      created_at: new Date().toISOString() 
+    };
     if (uploader) item.uploader = uploader;
     list.push(item);
     fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
@@ -66,6 +85,10 @@ export async function DELETE(req: NextRequest) {
   try {
     if (removed.url && removed.url.startsWith('/uploads/publications/')) {
       const fp = path.join(process.cwd(), 'public', removed.url.replace('/uploads/', 'uploads/'));
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    }
+    if (removed.cover_url && removed.cover_url.startsWith('/uploads/publications/')) {
+      const fp = path.join(process.cwd(), 'public', removed.cover_url.replace('/uploads/', 'uploads/'));
       if (fs.existsSync(fp)) fs.unlinkSync(fp);
     }
   } catch (e) {}

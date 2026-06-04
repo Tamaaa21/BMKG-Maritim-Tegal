@@ -1,159 +1,246 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Eye, Trash2, Download } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Link as LinkIcon, Info, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-interface LayananEntry {
+interface LayananCard {
   id: string;
-  email: string;
-  nama_lengkap: string;
-  alamat: string;
-  no_hp: string;
-  tipe?: string;
-  photo_path?: string;
-  status: string;
+  nama_layanan: string;
+  deskripsi: string;
+  url_google_form: string | null;
   created_at: string;
 }
 
-export default function LayananPage() {
-  const [tab, setTab] = useState("berbayar");
-  const [data, setData] = useState<LayananEntry[]>([]);
-  const [filtered, setFiltered] = useState<LayananEntry[]>([]);
+export default function LayananAdminPage() {
+  const [services, setServices] = useState<LayananCard[]>([]);
+  const [filtered, setFiltered] = useState<LayananCard[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedEntry, setSelectedEntry] = useState<LayananEntry | null>(null);
+
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Form Fields
+  const [namaLayanan, setNamaLayanan] = useState("");
+  const [deskripsi, setDeskripsi] = useState("");
+  const [urlGoogleForm, setUrlGoogleForm] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, [tab]);
+    fetchServices();
+  }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    const term = search.toLowerCase();
+    const matched = services.filter(
+      (item) =>
+        item.nama_layanan.toLowerCase().includes(term) ||
+        (item.deskripsi && item.deskripsi.toLowerCase().includes(term))
+    );
+    setFiltered(matched);
+  }, [search, services]);
+
+  const fetchServices = async () => {
     setLoading(true);
     try {
-      const endpoint = tab === "berbayar" ? "/api/admin/layanan-berbayar" : "/api/admin/layanan-nol-rupiah";
-      const response = await fetch(endpoint);
-      const result = await response.json();
-      setData(result || []);
-      setFiltered(result || []);
-    } catch (error) {
-      console.error(error);
+      const res = await fetch("/api/admin/layanan-cards");
+      const json = await res.json();
+      if (json?.success) {
+        setServices(json.data || []);
+        setFiltered(json.data || []);
+      }
+    } catch (e) {
+      console.error("Error fetching services:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const filtered = data.filter(
-      (item) =>
-        item.nama_lengkap.toLowerCase().includes(search.toLowerCase()) ||
-        item.email.toLowerCase().includes(search.toLowerCase())
-    );
-    setFiltered(filtered);
-  }, [search, data]);
+  const handleOpenAdd = () => {
+    setModalMode("add");
+    setSelectedId(null);
+    setNamaLayanan("");
+    setDeskripsi("");
+    setUrlGoogleForm("");
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (svc: LayananCard) => {
+    setModalMode("edit");
+    setSelectedId(svc.id);
+    setNamaLayanan(svc.nama_layanan);
+    setDeskripsi(svc.deskripsi || "");
+    setUrlGoogleForm(svc.url_google_form || "");
+    setIsModalOpen(true);
+  };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus kartu layanan ini?")) return;
+
     try {
-      const endpoint = tab === "berbayar" ? "/api/admin/layanan-berbayar" : "/api/admin/layanan-nol-rupiah";
-      await fetch(`${endpoint}/${id}`, { method: "DELETE" });
-      setData(data.filter(item => item.id !== id));
-    } catch (error) {
-      console.error(error);
+      const res = await fetch(`/api/admin/layanan-cards/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json?.success) {
+        setServices(services.filter((s) => s.id !== id));
+        alert("Berhasil menghapus layanan");
+      } else {
+        alert("Gagal menghapus: " + (json?.message || "Unknown error"));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Terjadi kesalahan saat menghapus");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!namaLayanan.trim()) {
+      alert("Nama Layanan wajib diisi");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (modalMode === "add") {
+        const res = await fetch("/api/admin/layanan-cards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama_layanan: namaLayanan,
+            deskripsi: deskripsi || null,
+            url_google_form: urlGoogleForm || null,
+          }),
+        });
+        const json = await res.json();
+        if (json?.success && json.data) {
+          setServices([...services, json.data]);
+          setIsModalOpen(false);
+          alert("Berhasil menambahkan layanan baru");
+        } else {
+          alert("Gagal menyimpan: " + (json?.message || "Unknown error"));
+        }
+      } else {
+        const res = await fetch(`/api/admin/layanan-cards/${selectedId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nama_layanan: namaLayanan,
+            deskripsi: deskripsi,
+            url_google_form: urlGoogleForm,
+          }),
+        });
+        const json = await res.json();
+        if (json?.success && json.data) {
+          setServices(services.map((s) => (s.id === selectedId ? json.data : s)));
+          setIsModalOpen(false);
+          alert("Berhasil memperbarui layanan");
+        } else {
+          alert("Gagal menyimpan: " + (json?.message || "Unknown error"));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan saat menyimpan data");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Data Layanan</h1>
-        <p className="text-gray-500 mt-2">Manajemen data permohonan layanan</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Kelola Kartu Layanan</h1>
+          <p className="text-gray-500 mt-2">Manajemen kartu layanan yang tampil pada halaman utama pengguna.</p>
+        </div>
         <button
-          onClick={() => setTab("berbayar")}
-          className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
-            tab === "berbayar"
-              ? "text-[#003399] border-[#003399]"
-              : "text-gray-600 border-transparent hover:text-gray-900"
-          }`}
+          onClick={handleOpenAdd}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all text-sm shrink-0"
         >
-          Layanan Berbayar
-        </button>
-        <button
-          onClick={() => setTab("nol-rupiah")}
-          className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
-            tab === "nol-rupiah"
-              ? "text-[#003399] border-[#003399]"
-              : "text-gray-600 border-transparent hover:text-gray-900"
-          }`}
-        >
-          Layanan Nol Rupiah
+          <Plus size={18} />
+          Tambah Pelayanan
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-        <input
-          type="text"
-          placeholder="Cari berdasarkan nama atau email..."
+        <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003399]"
+          placeholder="Cari berdasarkan nama atau deskripsi..."
+          className="pl-12 bg-white shadow-sm border-gray-200 focus-visible:ring-[#003399] rounded-xl h-11"
         />
       </div>
 
-      {/* Table */}
+      {/* Cards Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="w-8 h-8 border-4 border-[#003399] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-600">Memuat data...</p>
+          <div className="p-12 text-center">
+            <div className="w-10 h-10 border-4 border-[#003399] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">Memuat kartu layanan...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            Tidak ada data ditemukan
+          <div className="p-12 text-center text-gray-500">
+            <Info className="mx-auto text-gray-400 mb-3" size={36} />
+            <p className="font-semibold text-gray-700">Tidak ada layanan ditemukan</p>
+            <p className="text-sm text-gray-400 mt-1">Coba gunakan kata kunci pencarian yang lain atau tambahkan layanan baru.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Nama</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">No. HP</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700">Tanggal</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700">Aksi</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Layanan</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">Deskripsi Singkat</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-700 uppercase tracking-wider">Tautan Google Form</th>
+                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider w-32">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.nama_lengkap}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{item.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{item.no_hp}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-                        {item.status}
-                      </span>
+                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-5 text-sm font-semibold text-gray-900 leading-snug">
+                      {item.nama_layanan}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(item.created_at).toLocaleDateString("id-ID")}
+                    <td className="px-6 py-5 text-sm text-gray-600 leading-relaxed max-w-md">
+                      {item.deskripsi || <span className="text-gray-400 italic">Tidak ada deskripsi</span>}
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-5 text-sm text-[#003399]">
+                      {item.url_google_form ? (
+                        <a
+                          href={item.url_google_form}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 hover:underline font-medium"
+                        >
+                          <LinkIcon size={14} className="shrink-0" />
+                          Buka Google Form
+                        </a>
+                      ) : (
+                        <span className="text-red-500 font-medium italic">Belum diset (Menampilkan Alert)</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-5 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => setSelectedEntry(item)}
+                          onClick={() => handleOpenEdit(item)}
                           className="p-2 hover:bg-blue-50 text-[#003399] rounded-lg transition-colors"
+                          title="Edit Kartu Layanan"
                         >
-                          <Eye size={18} />
+                          <Edit2 size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
                           className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                          title="Hapus Kartu Layanan"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -167,60 +254,92 @@ export default function LayananPage() {
         )}
       </div>
 
-      {/* Detail Modal */}
-      {selectedEntry && (
+      {/* Add / Edit Modal */}
+      {isModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-          onClick={() => setSelectedEntry(null)}
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsModalOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-96 overflow-y-auto"
+            className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 relative animate-zoom-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-gray-900 mb-6">Detail Permohonan</h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">Nama Lengkap</p>
-                <p className="text-gray-900 font-medium">{selectedEntry.nama_lengkap}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">Email</p>
-                <p className="text-gray-900 font-medium">{selectedEntry.email}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">No. HP</p>
-                <p className="text-gray-900 font-medium">{selectedEntry.no_hp}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">Status</p>
-                <p className="text-gray-900 font-medium">{selectedEntry.status}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs text-gray-500 font-semibold mb-1">Alamat</p>
-                <p className="text-gray-900 font-medium">{selectedEntry.alamat}</p>
-              </div>
-              {selectedEntry.tipe && (
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">Tipe</p>
-                  <p className="text-gray-900 font-medium">{selectedEntry.tipe}</p>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 mt-6 pt-6 border-t">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center pb-4 mb-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900">
+                {modalMode === "add" ? "Tambah Kartu Layanan" : "Edit Kartu Layanan"}
+              </h2>
               <button
-                onClick={() => setSelectedEntry(null)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
               >
-                Tutup
+                <X size={20} />
               </button>
-              <a
-                href="#"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors"
-              >
-                <Download size={16} />
-                Unduh File
-              </a>
             </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Nama Layanan <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={namaLayanan}
+                  onChange={(e) => setNamaLayanan(e.target.value)}
+                  placeholder="Contoh: Layanan Berbayar (PNBP)"
+                  className="rounded-lg border-gray-200 focus-visible:ring-[#003399]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Deskripsi Singkat <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  value={deskripsi}
+                  onChange={(e) => setDeskripsi(e.target.value)}
+                  placeholder="Tulis penjelasan singkat mengenai cakupan layanan ini..."
+                  className="rounded-lg border-gray-200 focus-visible:ring-[#003399] min-h-[100px] resize-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Tautan URL Google Form <span className="text-gray-400 text-xs font-normal">(Kosongkan jika belum tersedia)</span>
+                </label>
+                <Input
+                  type="url"
+                  value={urlGoogleForm}
+                  onChange={(e) => setUrlGoogleForm(e.target.value)}
+                  placeholder="https://docs.google.com/forms/d/..."
+                  className="rounded-lg border-gray-200 focus-visible:ring-[#003399]"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Jika dikosongkan, pengguna akan melihat pesan pemberitahuan bahwa halaman belum diperbarui saat mengklik kartu.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className={`flex-1 px-4 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5 ${saving ? "opacity-70 pointer-events-none" : ""
+                    }`}
+                >
+                  {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

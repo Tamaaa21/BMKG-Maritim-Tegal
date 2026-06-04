@@ -1,10 +1,4 @@
-/*
-  # Add photo support to buku_tamu table
-  
-  1. New Column
-    - `foto_url` - URL to uploaded photo or base64 data
-*/
-
+/* backup of original 05_add_foto_to_buku_tamu.sql */
 -- Add foto_url column to buku_tamu
 ALTER TABLE public.buku_tamu
 ADD COLUMN IF NOT EXISTS foto_url text;

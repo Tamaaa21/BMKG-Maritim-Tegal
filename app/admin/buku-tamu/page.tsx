@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Trash2, Eye } from "lucide-react";
+import { Search, Trash2, Eye, Download } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface BukuTamuEntry {
   id: string;
@@ -59,6 +62,39 @@ export default function BukuTamuPage() {
     }
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Laporan Buku Tamu - Stasiun Meteorologi Maritim Tegal", 14, 20);
+    
+    const tableColumn = ["No", "Nama", "Email", "Telepon", "Instansi", "Keperluan", "Tanggal"];
+    const tableRows: any[] = [];
+
+    filtered.forEach((item, index) => {
+      const rowData = [
+        index + 1,
+        item.nama,
+        item.email,
+        item.no_telepon,
+        item.instansi || "-",
+        item.keperluan,
+        new Date(item.created_at).toLocaleDateString("id-ID")
+      ];
+      tableRows.push(rowData);
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [0, 51, 153] }
+    });
+
+    doc.save(`Buku_Tamu_${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-0">
       <div>
@@ -66,16 +102,18 @@ export default function BukuTamuPage() {
         <p className="text-gray-500 mt-2 text-sm md:text-base">Manajemen data pengunjung dan tamu</p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-        <input
-          type="text"
-          placeholder="Cari berdasarkan nama, email, atau telepon..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003399] text-sm"
-        />
+      {/* Search & Export */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari berdasarkan nama, email, atau telepon..." className="pl-12 text-sm" />
+        </div>
+        <button
+          onClick={handleExportPDF}
+          className="flex items-center gap-2 bg-[#003399] hover:bg-[#0044cc] text-white px-4 py-2.5 rounded-lg font-semibold transition-colors w-full sm:w-auto text-sm shadow-sm"
+        >
+          <Download size={18} /> Cetak PDF
+        </button>
       </div>
 
       {/* Table */}

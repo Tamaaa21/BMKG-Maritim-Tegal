@@ -6,6 +6,7 @@ import AboutSection from "@/components/AboutSection";
 import PrakiraanSection from "@/components/PrakiraanSection";
 import LayananSection from "@/components/LayananSection";
 import KegiatanSection from "@/components/KegiatanSection";
+import BuletinSection from "@/components/BuletinSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 
@@ -14,10 +15,11 @@ export default function Home() {
     <main className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <AboutSection />
-      <PrakiraanSection />
-      <LayananSection />
-      <KegiatanSection />
+      {/* <AboutSection showExtras={false} /> */}
+      <BuletinSection />
+      <PrakiraanSection limit={4} />
+      <LayananSection limit={4} />
+      <KegiatanSection limit={4} />
       <ContactSection />
       <Footer />
     </main>

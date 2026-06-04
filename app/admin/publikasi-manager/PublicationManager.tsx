@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Upload, Trash, Plus } from "lucide-react";
+import { Upload, Trash, Plus, FileText, Image } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function PublicationManager() {
   const [items, setItems] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [addingUrl, setAddingUrl] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,72 +23,151 @@ export default function PublicationManager() {
     } catch (e) {}
   };
 
-  useEffect(() => { fetchList(); }, []);
+  useEffect(() => {
+    fetchList();
+  }, []);
 
   const handleUpload = async () => {
-    if (!file && !addingUrl) return;
+    if (!file && !addingUrl) {
+      alert("Silakan pilih file publikasi atau isi URL file");
+      return;
+    }
     setLoading(true);
     try {
       const form = new FormData();
       if (file) form.append('file', file);
       if (addingUrl) form.append('url', addingUrl);
-      form.append('title', title || 'Publikasi');
+      if (coverFile) form.append('coverFile', coverFile);
+      if (coverUrl) form.append('coverUrl', coverUrl);
+      form.append('title', title || 'Publikasi Baru');
       form.append('description', description || '');
+      
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+        const token = typeof window !== 'undefined' ? sessionStorage.getItem('adminToken') : null;
         if (token) {
           const decoded = atob(token);
           const username = decoded.split(':')[0];
           if (username) form.append('uploader', username);
         }
       } catch (e) {}
+
       const r = await fetch('/api/admin/publications', { method: 'POST', body: form });
       const j = await r.json();
       if (j?.success) {
-        setFile(null); setAddingUrl(''); setTitle(''); setDescription(''); fetchList();
+        setFile(null);
+        setAddingUrl('');
+        setCoverFile(null);
+        setCoverUrl('');
+        setTitle('');
+        setDescription('');
+        fetchList();
+        alert("Publikasi berhasil ditambahkan");
+      } else {
+        alert("Gagal menambahkan publikasi: " + (j?.error || "Error"));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+      alert("Terjadi kesalahan koneksi");
+    }
     setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus publikasi ini?')) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus publikasi/buletin ini?')) return;
     await fetch(`/api/admin/publications?id=${id}`, { method: 'DELETE' });
     fetchList();
   };
 
   return (
-    <div className="mt-4 bg-white rounded-2xl border p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <label className="col-span-2 flex items-center gap-3 p-3 border-2 border-dashed rounded-lg cursor-pointer">
-          <Upload />
-          <span className="text-sm text-gray-600">Pilih file (PDF / gambar)</span>
+    <div className="mt-4 bg-white rounded-2xl border p-6 space-y-4">
+      <h2 className="text-xl font-bold text-gray-900 mb-2">Unggah Publikasi / Buletin Baru</h2>
+      
+      {/* File & URL Inputs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <label className="col-span-2 flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-300 hover:border-[#003399] rounded-xl cursor-pointer bg-gray-50/20 transition-all">
+          <Upload className="text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {file ? `File: ${file.name}` : "Pilih File Publikasi (PDF / Gambar) *"}
+          </span>
           <input type="file" accept="image/*,application/pdf" onChange={(e)=>setFile(e.target.files?.[0]||null)} className="hidden" />
         </label>
-        <div className="flex items-center gap-2">
-          <input value={addingUrl} onChange={e=>setAddingUrl(e.target.value)} placeholder="Atau tempel URL file" className="flex-1 border rounded-md p-2" />
-          <button onClick={handleUpload} disabled={loading} className="px-4 py-2 bg-[#003399] text-white rounded-md">{loading? 'Mengirim...':'Tambah'}</button>
-        </div>
+        <Input value={addingUrl} onChange={e=>setAddingUrl(e.target.value)} placeholder="Atau tempel URL file publikasi" className="h-full rounded-xl" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 mb-4">
-        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Judul publikasi" className="border rounded-md p-2" />
-        <textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Deskripsi singkat" className="border rounded-md p-2" />
+      {/* Cover Image Inputs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+        <label className="col-span-2 flex items-center gap-3 p-3.5 border-2 border-dashed border-gray-300 hover:border-[#003399] rounded-xl cursor-pointer bg-gray-50/20 transition-all">
+          <Image className="text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {coverFile ? `Cover: ${coverFile.name}` : "Pilih Cover Gambar Buletin (Opsional)"}
+          </span>
+          <input type="file" accept="image/*" onChange={(e)=>setCoverFile(e.target.files?.[0]||null)} className="hidden" />
+        </label>
+        <Input value={coverUrl} onChange={e=>setCoverUrl(e.target.value)} placeholder="Atau tempel URL Cover" className="h-full rounded-xl" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {items.map(it => (
-          <div key={it.id} className="relative rounded-lg overflow-hidden border p-2">
-            {it.url.endsWith('.pdf') ? (
-              <div className="flex items-center justify-center h-36 bg-gray-100">PDF</div>
-            ) : (
-              <img src={it.url} alt={it.title} className="w-full h-36 object-cover" />
-            )}
-            <div className="mt-2 text-sm font-semibold">{it.title}</div>
-            <div className="text-xs text-gray-500 line-clamp-2">{it.description}</div>
-            <button className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1" onClick={()=>handleDelete(it.id)}><Trash size={14} /></button>
+      {/* Metadata Inputs */}
+      <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100">
+        <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Judul Publikasi / Buletin (Contoh: BULETIN MEI 2026) *" className="rounded-xl p-3" />
+        <Textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Deskripsi Singkat Buletin" className="rounded-xl p-3 min-h-[80px]" />
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button 
+          onClick={handleUpload} 
+          disabled={loading} 
+          className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+        >
+          <Plus size={18} />
+          {loading ? 'Mengirim...' : 'Tambah Publikasi'}
+        </button>
+      </div>
+
+      {/* Publication List Display */}
+      <div className="pt-6 border-t border-gray-100">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Publikasi Saat Ini</h3>
+        
+        {items.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Belum ada publikasi yang diunggah.</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {items.map(it => (
+              <div key={it.id} className="relative rounded-xl overflow-hidden border border-gray-200 p-2.5 flex flex-col justify-between hover:shadow-md transition-shadow group bg-white">
+                <div>
+                  {/* Thumbnail / Cover */}
+                  <div className="w-full h-36 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative flex items-center justify-center">
+                    {it.cover_url ? (
+                      <img src={it.cover_url} alt={it.title} className="w-full h-full object-cover" />
+                    ) : it.url.endsWith('.pdf') ? (
+                      <div className="flex flex-col items-center gap-1.5 text-center p-3 select-none">
+                        <FileText size={32} className="text-red-500" />
+                        <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider">PDF</span>
+                      </div>
+                    ) : (
+                      <img src={it.url} alt={it.title} className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  
+                  <div className="mt-3">
+                    <div className="text-xs font-bold text-gray-900 line-clamp-1 group-hover:text-[#003399] transition-colors">{it.title}</div>
+                    <div className="text-[11px] text-gray-500 line-clamp-2 mt-1 leading-relaxed">{it.description || "Tidak ada deskripsi"}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 text-[10px] text-gray-400">
+                  <span>Oleh: {it.uploader || "admin"}</span>
+                  <button 
+                    className="bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 text-red-600 rounded-lg p-1.5 transition-colors" 
+                    onClick={()=>handleDelete(it.id)}
+                    title="Hapus publikasi"
+                  >
+                    <Trash size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

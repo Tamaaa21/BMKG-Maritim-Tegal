@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ChevronRight, Calendar } from "lucide-react";
-
-const categories = ["Semua", "Sosialisasi", "Kunjungan", "Pengamatan", "Lainnya"];
+import { kegiatanTabs } from "@/components/kegiatanCategories";
 
 const activities = [
   {
@@ -56,7 +55,7 @@ const activities = [
   },
 ];
 
-export default function KegiatanSection() {
+export default function KegiatanSection({ limit }: { limit?: number }) {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [lightbox, setLightbox] = useState<null | any>(null);
   const [items, setItems] = useState<any[]>([]);
@@ -93,30 +92,12 @@ export default function KegiatanSection() {
           <p className="text-gray-500 mt-2">Dokumentasi kegiatan Stasiun Meteorologi Maritim Tegal</p>
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                activeCategory === cat
-                  ? "bg-[#003399] text-white shadow-md"
-                  : "bg-white text-gray-600 border border-gray-200 hover:border-[#003399] hover:text-[#003399]"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
         {/* Gallery Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {filtered.map((item, i) => (
+        <div className="flex flex-wrap justify-center gap-4">
+          {(limit ? items.slice(0, limit) : items).map((item, i) => (
             <div
               key={i}
-              className="relative rounded-xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-lg transition-all duration-300"
-              style={{ aspectRatio: "4/3" }}
+              className="relative rounded-xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-lg transition-all duration-300 w-full sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)] h-56 md:h-64"
               onClick={() => setLightbox(item)}
             >
               <img
@@ -136,15 +117,17 @@ export default function KegiatanSection() {
           ))}
         </div>
 
-        {/* Load More */}
-        <div className="mt-10 text-center">
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 px-8 py-3 border-2 border-[#003399] text-[#003399] hover:bg-[#003399] hover:text-white font-semibold text-sm rounded-full transition-all duration-200"
-          >
-            Lihat Semua Kegiatan <ChevronRight size={16} />
-          </a>
-        </div>
+        {/* Selanjutnya */}
+        {limit && (
+          <div className="mt-10 text-center">
+            <a
+              href="/kegiatan"
+              className="inline-flex items-center gap-2 px-8 py-3 border-2 border-[#003399] text-[#003399] hover:bg-[#003399] hover:text-white font-semibold text-sm rounded-full transition-all duration-200"
+            >
+              Selanjutnya <ChevronRight size={16} />
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Lightbox */}
@@ -163,9 +146,10 @@ export default function KegiatanSection() {
             >
               <X size={16} />
             </button>
-            <img src={lightbox.image} alt={lightbox.title} className="w-full h-72 object-cover" />
+            <div className="w-full h-72 bg-gray-100 flex items-center justify-center">
+              <img src={lightbox.image} alt={lightbox.title} className="w-full h-full object-contain" />
+            </div>
             <div className="p-5">
-              <p className="text-xs text-[#003399] font-semibold uppercase tracking-wide mb-1">{lightbox.category}</p>
               <h3 className="text-gray-900 font-bold text-lg">{lightbox.title}</h3>
               <div className="flex items-center gap-1 mt-2">
                 <Calendar size={12} className="text-gray-400" />

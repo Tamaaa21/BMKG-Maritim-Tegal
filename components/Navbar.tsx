@@ -1,32 +1,45 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, Search, Globe } from "lucide-react";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Menu, X, Globe } from "lucide-react";
 
 const navLinks = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "Prakiraan", href: "#prakiraan" },
-  { label: "Layanan", href: "#layanan" },
-  { label: "Kegiatan", href: "#kegiatan" },
-  { label: "Kontak", href: "#kontak" },
+  { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
+  { label: "Prakiraan", href: "/prakiraan" },
+  { label: "Layanan", href: "/layanan" },
+  { label: "Kegiatan", href: "/kegiatan" },
+  { label: "Kontak", href: "/kontak" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ minimal = false }: { minimal?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
   const [active, setActive] = useState("Home");
 
   useEffect(() => {
+    if (minimal) return;
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [minimal]);
+
+  useEffect(() => {
+    if (!pathname || minimal) return;
+    const found = navLinks.find(n => n.href === pathname || (n.href !== '/' && pathname.startsWith(n.href)));
+    setActive(found?.label || 'Home');
+  }, [pathname, minimal]);
+
+  const isHome = pathname === "/";
+  const showScrolledBg = !minimal && isHome && !scrolled;
 
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-[#003399] shadow-lg" : "bg-transparent"
+        showScrolledBg ? "bg-transparent" : "bg-[#003399] shadow-lg"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,62 +49,60 @@ export default function Navbar() {
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
               <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
             </div>
-            <div className="hidden sm:block">
+            <div className={minimal ? "block" : "hidden sm:block"}>
               <p className="text-white font-bold text-sm leading-tight">BMKG</p>
               <p className="text-blue-200 text-xs leading-tight">Stasiun Meteorologi Maritim Tegal</p>
             </div>
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                onClick={() => setActive(link.label)}
-                className={`px-4 py-2 text-sm font-medium transition-colors rounded-md relative group ${
+          {!minimal && (
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link key={link.label} href={link.href} onClick={() => setMenuOpen(false)} className={`px-4 py-2 text-sm font-medium transition-colors rounded-md relative group ${
                   active === link.label ? "text-white" : "text-blue-100 hover:text-white"
-                }`}
-              >
-                {link.label}
-                <span
-                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-yellow-400 transition-all duration-200 ${
-                    active === link.label ? "w-3/4" : "w-0 group-hover:w-3/4"
-                  }`}
-                />
-              </a>
-            ))}
-          </div>
+                }`}>
+                  {link.label}
+                  <span
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-yellow-400 transition-all duration-200 ${
+                      active === link.label ? "w-3/4" : "w-0 group-hover:w-3/4"
+                    }`}
+                  />
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2">
-          
-            <button className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-blue-100 hover:text-white border border-blue-300/40 rounded-full transition-colors">
-              <Globe size={14} />
-              ID
-            </button>
-            <button
-              className="md:hidden p-2 text-blue-100 hover:text-white"
-              onClick={() => setMenuOpen(!menuOpen)}
-            >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
+          {!minimal && (
+            <div className="flex items-center gap-2">
+              <button className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-blue-100 hover:text-white border border-blue-300/40 rounded-full transition-colors">
+                <Globe size={14} />
+                ID
+              </button>
+              <button
+                className="md:hidden p-2 text-blue-100 hover:text-white"
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Mobile Menu */}
-      {menuOpen && (
+      {!minimal && menuOpen && (
         <div className="md:hidden bg-[#003399] border-t border-blue-700 px-4 py-3">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.label}
               href={link.href}
               onClick={() => { setActive(link.label); setMenuOpen(false); }}
               className="block px-3 py-2 text-sm text-blue-100 hover:text-white hover:bg-blue-800 rounded-md transition-colors"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
       )}

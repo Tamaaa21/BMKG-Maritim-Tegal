@@ -1,21 +1,10 @@
 /*
-  # Create CMS Tables for BMKG Portal
-
-  1. New Tables
-    - `admin_users` - Admin user mapping
-    - `buku_tamu` - Guest book entries
-    - `layanan_berbayar` - Paid service requests
-    - `layanan_nol_rupiah` - Free service requests
-    - `hero_images` - Hero section background images
-    - `prakiraan_images` - Forecast section main image
-
-  2. Security
-    - Enable RLS on all tables
-    - Public read for images, authenticated write
-    - Private write for forms, admin read
+  Combined migration file
+  - Menggabungkan semua migrasi SQL proyek ke satu file agar lebih mudah dikelola
+  - Backup file-file migrasi lama disimpan di folder `supabase/migrations/backup/`
 */
 
--- Create admin_users table first (no RLS - managed by system)
+-- 1) Create admin_users table
 CREATE TABLE IF NOT EXISTS public.admin_users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE,
@@ -23,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
   created_at timestamptz DEFAULT now()
 );
 
--- Create buku_tamu table
+-- 2) Create buku_tamu table
 CREATE TABLE IF NOT EXISTS public.buku_tamu (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   nama text NOT NULL,
@@ -52,7 +41,7 @@ CREATE POLICY "Admin can read buku tamu"
     )
   );
 
--- Create layanan_berbayar table
+-- 3) Create layanan_berbayar table
 CREATE TABLE IF NOT EXISTS public.layanan_berbayar (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL,
@@ -85,7 +74,7 @@ CREATE POLICY "Admin can read layanan berbayar"
     )
   );
 
--- Create layanan_nol_rupiah table
+-- 4) Create layanan_nol_rupiah table
 CREATE TABLE IF NOT EXISTS public.layanan_nol_rupiah (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL,
@@ -120,7 +109,7 @@ CREATE POLICY "Admin can read layanan nol rupiah"
     )
   );
 
--- Create hero_images table
+-- 5) Create hero_images table
 CREATE TABLE IF NOT EXISTS public.hero_images (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
@@ -148,7 +137,7 @@ CREATE POLICY "Admin can manage hero images"
     )
   );
 
--- Create prakiraan_images table
+-- 6) Create prakiraan_images table
 CREATE TABLE IF NOT EXISTS public.prakiraan_images (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,
@@ -174,3 +163,54 @@ CREATE POLICY "Admin can manage prakiraan images"
       WHERE admin_users.user_id = auth.uid()
     )
   );
+
+-- 7) Create kegiatan_documents table
+CREATE TABLE IF NOT EXISTS public.kegiatan_documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  category text,
+  url text NOT NULL,
+  file_path text,
+  file_type text,
+  event_date date,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.kegiatan_documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read active kegiatan documents"
+  ON public.kegiatan_documents FOR SELECT
+  TO authenticated, anon
+  USING (is_active = true);
+
+CREATE POLICY "Admin can manage kegiatan documents"
+  ON public.kegiatan_documents FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.admin_users
+      WHERE admin_users.user_id = auth.uid()
+    )
+  );
+
+-- 8) Schema updates / additional columns
+
+-- Add explanation to prakiraan_images (if not exists)
+ALTER TABLE public.prakiraan_images
+  ADD COLUMN IF NOT EXISTS explanation text;
+
+-- Add uploader to prakiraan_images (if not exists)
+ALTER TABLE public.prakiraan_images
+  ADD COLUMN IF NOT EXISTS uploader text;
+
+-- Add foto_url and foto_data to buku_tamu (if not exists)
+ALTER TABLE public.buku_tamu
+  ADD COLUMN IF NOT EXISTS foto_url text;
+
+ALTER TABLE public.buku_tamu
+  ADD COLUMN IF NOT EXISTS foto_data text;
+
+-- End of combined migration
