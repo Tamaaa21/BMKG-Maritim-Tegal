@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const defaultImages = [
   "/bg.jpeg"];
-export default function HeroBackgroundSlideshow() {
+export default function HeroBackgroundSlideshow({ onImageChange }: { onImageChange?: (index: number) => void }) {
   const [current, setCurrent] = useState(0);
   const [images, setImages] = useState<string[]>(defaultImages);
 
@@ -38,6 +38,12 @@ export default function HeroBackgroundSlideshow() {
     if (current >= images.length) setCurrent(0);
   }, [images, current]);
 
+  useEffect(() => {
+    if (onImageChange) {
+      onImageChange(current);
+    }
+  }, [current, onImageChange]);
+
   return (
     <>
       {/* Mobile: use a single, static background (first image) to save bandwidth and improve layout */}
@@ -49,9 +55,6 @@ export default function HeroBackgroundSlideshow() {
 
       {/* Desktop and up: animated slideshow */}
       <div className="hidden md:block absolute inset-0 w-full h-full overflow-hidden">
-        {/* Background with overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 z-10" />
-
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
