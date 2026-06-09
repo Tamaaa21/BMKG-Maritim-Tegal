@@ -32,7 +32,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-blue-50 border-blue-100",
       iconColor: "text-blue-600",
       accent: "hover:border-blue-300 hover:shadow-blue-500/5",
-      badgeText: "Layanan Data"
+      badgeText: "Layanan Data",
+      coverImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
     };
   }
   if (t.includes("kalibrasi") || t.includes("alat") || t.includes("uji") || t.includes("stasiun") || t.includes("instrumen") || t.includes("perawatan")) {
@@ -41,7 +42,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-amber-50 border-amber-100",
       iconColor: "text-amber-600",
       accent: "hover:border-amber-300 hover:shadow-amber-500/5",
-      badgeText: "Jasa Kalibrasi"
+      badgeText: "Jasa Kalibrasi",
+      coverImage: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=600&q=80"
     };
   }
   if (t.includes("kunjungan") || t.includes("sosialisasi") || t.includes("edukasi") || t.includes("sekolah") || t.includes("magang") || t.includes("pkl") || t.includes("wisata")) {
@@ -50,7 +52,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-indigo-50 border-indigo-100",
       iconColor: "text-indigo-600",
       accent: "hover:border-indigo-300 hover:shadow-indigo-500/5",
-      badgeText: "Edukasi & Sosial"
+      badgeText: "Edukasi & Sosial",
+      coverImage: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=600&q=80"
     };
   }
   if (t.includes("maritim") || t.includes("pelayaran") || t.includes("cuaca") || t.includes("laut") || t.includes("gelombang") || t.includes("pelabuhan")) {
@@ -59,7 +62,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-cyan-50 border-cyan-100",
       iconColor: "text-cyan-600",
       accent: "hover:border-cyan-300 hover:shadow-cyan-500/5",
-      badgeText: "Info Maritim"
+      badgeText: "Info Maritim",
+      coverImage: "https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=600&q=80"
     };
   }
   if (t.includes("berbayar") || t.includes("tarif") || t.includes("pnbp") || t.includes("komersial") || t.includes("harga")) {
@@ -68,7 +72,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-emerald-50 border-emerald-100",
       iconColor: "text-emerald-600",
       accent: "hover:border-emerald-300 hover:shadow-emerald-500/5",
-      badgeText: "PNBP Berbayar"
+      badgeText: "PNBP Berbayar",
+      coverImage: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80"
     };
   }
   if (t.includes("gratis") || t.includes("nol") || t.includes("non-pnbp")) {
@@ -77,7 +82,8 @@ const getServiceConfig = (title: string) => {
       bg: "bg-teal-50 border-teal-100",
       iconColor: "text-teal-600",
       accent: "hover:border-teal-300 hover:shadow-teal-500/5",
-      badgeText: "Tarif Rp 0,-"
+      badgeText: "Tarif Rp 0,-",
+      coverImage: "https://images.unsplash.com/photo-1494707924465-e1426acb48cb?auto=format&fit=crop&w=600&q=80"
     };
   }
   
@@ -87,7 +93,8 @@ const getServiceConfig = (title: string) => {
     bg: "bg-slate-50 border-slate-100",
     iconColor: "text-slate-600",
     accent: "hover:border-slate-300 hover:shadow-slate-500/5",
-    badgeText: "Layanan Umum"
+    badgeText: "Layanan Umum",
+    coverImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80"
   };
 };
 
@@ -167,38 +174,49 @@ export default function LayananSection({ limit }: { limit?: number }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 items-stretch">
             {(limit ? services.slice(0, limit) : services).map((svc) => {
-              const { Icon, bg, iconColor, accent, badgeText } = getServiceConfig(svc.nama_layanan);
+              const { Icon, bg, iconColor, accent, badgeText, coverImage } = getServiceConfig(svc.nama_layanan);
 
               return (
                 <button
                   key={svc.id}
                   onClick={() => handleCardClick(svc.url_google_form)}
-                  className={`group bg-white border border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col text-left h-full ${accent}`}
+                  className={`group bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col text-left h-full ${accent}`}
                 >
-                  {/* Top: Icon & Category Badge */}
-                  <div className="flex items-center justify-between w-full mb-6 gap-2">
-                    <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center ${bg} group-hover:scale-105 transition-transform`}>
-                      <Icon size={24} className={iconColor} />
-                    </div>
-                    <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${bg} ${iconColor} border`}>
+                  {/* Top: Cover Image with Overlays */}
+                  <div className="relative w-full h-36 overflow-hidden shrink-0">
+                    <img 
+                      src={coverImage} 
+                      alt={svc.nama_layanan} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
+                    
+                    {/* Badge */}
+                    <span className={`absolute top-3 right-3 text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${bg} ${iconColor} border shadow-sm`}>
                       {badgeText}
                     </span>
+
+                    {/* Floating Overlapping Icon */}
+                    <div className={`absolute -bottom-4 left-5 w-9.5 h-9.5 rounded-xl border flex items-center justify-center bg-white shadow-md group-hover:scale-105 transition-transform`}>
+                      <Icon size={18} className={iconColor} />
+                    </div>
                   </div>
 
-                  {/* Title & Description */}
-                  <div className="flex-1 flex flex-col justify-start">
-                    <h3 className="text-slate-900 font-bold text-base mb-2 group-hover:text-[#003399] transition-colors leading-snug">
-                      {svc.nama_layanan}
-                    </h3>
-                    <p className="text-slate-500 text-xs sm:text-sm leading-relaxed line-clamp-3">
-                      {svc.deskripsi}
-                    </p>
-                  </div>
+                  {/* Title & Description & CTA */}
+                  <div className="p-5 pt-6 flex-1 flex flex-col justify-between w-full">
+                    <div className="flex-1 flex flex-col justify-start">
+                      <h3 className="text-slate-900 font-bold text-sm sm:text-base mb-1.5 group-hover:text-[#003399] transition-colors leading-snug line-clamp-2">
+                        {svc.nama_layanan}
+                      </h3>
+                      <p className="text-slate-500 text-xs sm:text-sm leading-relaxed line-clamp-3">
+                        {svc.deskripsi}
+                      </p>
+                    </div>
 
-                  {/* CTA Link */}
-                  <span className="mt-6 inline-flex items-center gap-1 text-xs sm:text-sm text-[#003399] font-bold group-hover:gap-2 transition-all">
-                    Akses Layanan <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                  </span>
+                    <span className="mt-4 inline-flex items-center gap-1 text-xs sm:text-sm text-[#003399] font-bold group-hover:gap-2 transition-all">
+                      Akses Layanan <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
                 </button>
               );
             })}

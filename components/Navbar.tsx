@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Globe } from "lucide-react";
+import { Menu, X, Clock } from "lucide-react";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -34,7 +34,23 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
   }, [pathname, minimal]);
 
   const isHome = pathname === "/";
-  const showScrolledBg = !minimal && isHome && !scrolled;
+  const showScrolledBg = false; // Always blue background, matching other pages
+  
+  const [timeString, setTimeString] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const seconds = String(now.getSeconds()).padStart(2, "0");
+      setTimeString(`${hours}:${minutes}:${seconds} WIB`);
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <nav
@@ -47,7 +63,7 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
-              <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
+              <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain" />
             </div>
             <div className={minimal ? "block" : "hidden sm:block"}>
               <p className="text-white font-bold text-sm leading-tight">BMKG</p>
@@ -76,10 +92,11 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
           {/* Right Actions */}
           {!minimal && (
             <div className="flex items-center gap-2">
-              <button className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs text-blue-100 hover:text-white border border-blue-300/40 rounded-full transition-colors">
-                <Globe size={14} />
-                ID
-              </button>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-mono text-blue-100 border border-blue-300/40 rounded-full bg-blue-900/30">
+                <Clock size={12} className="text-blue-300" />
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></span>
+                <span>{timeString || "--:--:-- WIB"}</span>
+              </div>
               <button
                 className="md:hidden p-2 text-blue-100 hover:text-white"
                 onClick={() => setMenuOpen(!menuOpen)}
