@@ -133,32 +133,63 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[#070b19]/97 backdrop-blur-md flex flex-col md:flex-row select-none"
           onClick={() => setLightbox(null)}
         >
-          <div
-            className="relative max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl"
+          {/* Close Button (Floating Top Left/Right depending on layout) */}
+          <button
+            className="absolute top-4 right-4 z-50 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all duration-200 backdrop-blur-sm border border-white/10"
+            onClick={() => setLightbox(null)}
+          >
+            <X size={20} />
+          </button>
+
+          {/* Left: Image Viewer Area (Uncropped) */}
+          <div 
+            className="flex-1 flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
+            onClick={() => setLightbox(null)}
+          >
+            <div 
+              className="relative max-w-full max-h-[45vh] md:max-h-[85vh] flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img 
+                src={lightbox.image} 
+                alt={lightbox.title} 
+                className="max-w-full max-h-[45vh] md:max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.6)] border border-white/10" 
+              />
+            </div>
+          </div>
+
+          {/* Right: Details Side Panel (Full height on md+, bottom sheet on mobile) */}
+          <div 
+            className="w-full md:w-96 md:h-full bg-[#0d1527]/95 border-t md:border-t-0 md:border-l border-slate-800/80 p-6 md:p-8 backdrop-blur-md shadow-[0_-10px_30px_rgba(0,0,0,0.3)] md:shadow-[-10px_0_30px_rgba(0,0,0,0.3)] flex flex-col justify-start text-left overflow-y-auto shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-              onClick={() => setLightbox(null)}
-            >
-              <X size={16} />
-            </button>
-            <div className="w-full h-72 bg-gray-100 flex items-center justify-center">
-              <img src={lightbox.image} alt={lightbox.title} className="w-full h-full object-contain" />
-            </div>
-            <div className="p-5">
-              <h3 className="text-gray-900 font-bold text-lg">{lightbox.title}</h3>
-              <div className="flex items-center gap-1 mt-2">
-                <Calendar size={12} className="text-gray-400" />
-                <p className="text-gray-500 text-sm">{lightbox.date}</p>
+            {/* Category & Date Metadata */}
+            <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
+              <span className="inline-flex items-center text-xs font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+                {lightbox.category}
+              </span>
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                <Calendar size={14} className="text-blue-400 shrink-0" />
+                <span>{lightbox.date}</span>
               </div>
-              {lightbox.description ? (
-                <p className="text-gray-700 text-sm mt-3">{lightbox.description}</p>
-              ) : null}
             </div>
+
+            {/* Title */}
+            <h3 className="text-white font-extrabold text-lg sm:text-xl tracking-tight leading-tight shrink-0 mb-4">
+              {lightbox.title}
+            </h3>
+
+            {/* Description */}
+            {lightbox.description && (
+              <div className="pt-4 border-t border-slate-800/80 flex-1">
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                  {lightbox.description}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

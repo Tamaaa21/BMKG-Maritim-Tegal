@@ -10,6 +10,7 @@ import BuletinSection from "@/components/BuletinSection";
 import ContactSection from "@/components/ContactSection";
 import Footer from "@/components/Footer";
 import EarthquakeCard from "@/components/EarthquakeCard";
+import InformasiLainnyaSection from "@/components/InformasiLainnyaSection";
 
 export default function Home() {
   return (
@@ -19,6 +20,7 @@ export default function Home() {
       {/* <AboutSection showExtras={false} /> */}
       <BuletinSection />
       <EarthquakeCard />
+      <InformasiLainnyaSection />
       <PrakiraanSection limit={4} />
       <LayananSection limit={4} />
       <KegiatanSection limit={4} />
