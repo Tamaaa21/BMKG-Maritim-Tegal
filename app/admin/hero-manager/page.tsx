@@ -3,6 +3,19 @@
 import { useState, useEffect } from "react";
 import { Upload, X, GripVertical } from "lucide-react";
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function HeroManager() {
   const [images, setImages] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -124,12 +137,14 @@ export default function HeroManager() {
                 <p className="font-semibold text-gray-900">{image.name}</p>
                 <p className="text-gray-500 text-sm">Urutan: #{idx + 1}</p>
               </div>
-              <button
-                onClick={() => handleDelete(image.id)}
-                className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
+              {isAdmin() && (
+                <button
+                  onClick={() => handleDelete(image.id)}
+                  className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              )}
             </div>
           ))}
         </div>

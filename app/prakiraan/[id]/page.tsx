@@ -11,9 +11,14 @@ interface PrakiraanDetail {
   title: string;
   url: string;
   explanation: string;
+  waktu_mulai?: string;
   waktu_berakhir?: string;
   created_at?: string;
   uploader?: string;
+  next_url?: string;
+  next_explanation?: string;
+  next_waktu_mulai?: string;
+  next_waktu_berakhir?: string;
 }
 
 export default function PrakiraanDetailPage() {
@@ -46,7 +51,9 @@ export default function PrakiraanDetailPage() {
     fetchDetail();
   }, [id]);
 
-  const isExpired = data?.waktu_berakhir && new Date(data.waktu_berakhir) < new Date();
+  const now = new Date();
+  const isExpired = data?.waktu_berakhir && new Date(data.waktu_berakhir) < now;
+  const isScheduled = !isExpired && data?.waktu_mulai && new Date(data.waktu_mulai) > now;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -92,11 +99,18 @@ export default function PrakiraanDetailPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                {/* Expired overlay badge */}
+                {/* Status overlay badge */}
                 {isExpired && (
                   <div className="absolute top-4 left-4">
                     <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                       Informasi Kadaluarsa
+                    </span>
+                  </div>
+                )}
+                {isScheduled && (
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                      Belum Tersedia
                     </span>
                   </div>
                 )}
@@ -111,7 +125,21 @@ export default function PrakiraanDetailPage() {
 
               {/* Content */}
               <div className="p-6 md:p-10 space-y-8">
-                {/* Expired warning */}
+                {/* Status warnings */}
+                {isScheduled && (
+                  <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <AlertCircle size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-blue-800 font-semibold text-sm">Informasi Belum Tersedia</p>
+                      <p className="text-blue-700 text-sm mt-0.5">
+                        Prakiraan ini akan mulai tayang pada{" "}
+                        {data.waktu_mulai
+                          ? new Date(data.waktu_mulai).toLocaleDateString("id-ID", { dateStyle: "long" })
+                          : ""}.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isExpired && (
                   <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <AlertCircle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -143,6 +171,14 @@ export default function PrakiraanDetailPage() {
                       </span>
                     </span>
                   )}
+                  {data.waktu_mulai && (
+                    <span className={`flex items-center gap-1.5 font-medium ${isScheduled ? "text-blue-500" : "text-gray-500"}`}>
+                      <Calendar size={14} />
+                      <span>
+                        Mulai: {new Date(data.waktu_mulai).toLocaleDateString("id-ID", { dateStyle: "long" })}
+                      </span>
+                    </span>
+                  )}
                   {data.waktu_berakhir && (
                     <span className={`flex items-center gap-1.5 font-medium ${isExpired ? "text-red-500" : "text-emerald-600"}`}>
                       <Calendar size={14} />
@@ -166,6 +202,52 @@ export default function PrakiraanDetailPage() {
                 ) : (
                   <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-6 text-center">
                     <p className="text-gray-400 text-sm italic">Belum ada penjelasan tersedia untuk prakiraan ini.</p>
+                  </div>
+                )}
+
+                {/* Next Forecast Section */}
+                {data.next_url && (
+                  <div className="border-t border-gray-100 pt-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Prakiraan Berikutnya</h2>
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl overflow-hidden">
+                      <div className="relative w-full h-48 bg-gray-100">
+                        <img
+                          src={data.next_url}
+                          alt="Prakiraan Berikutnya"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                        <div className="absolute bottom-3 left-3">
+                          <span className="bg-blue-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
+                            Terjadwal
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        {(data.next_waktu_mulai || data.next_waktu_berakhir) && (
+                          <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                            {data.next_waktu_mulai && (
+                              <span className="flex items-center gap-1.5">
+                                <Calendar size={13} />
+                                Mulai: {new Date(data.next_waktu_mulai).toLocaleDateString("id-ID", { dateStyle: "long" })}
+                              </span>
+                            )}
+                            {data.next_waktu_berakhir && (
+                              <span className="flex items-center gap-1.5">
+                                <Calendar size={13} />
+                                Berakhir: {new Date(data.next_waktu_berakhir).toLocaleDateString("id-ID", { dateStyle: "long" })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {data.next_explanation && (
+                          <div
+                            className="prose prose-sm max-w-none text-gray-700 leading-relaxed [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_a]:text-[#003399] [&_a]:underline break-words"
+                            dangerouslySetInnerHTML={{ __html: data.next_explanation }}
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 

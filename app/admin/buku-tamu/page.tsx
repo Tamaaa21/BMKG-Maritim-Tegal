@@ -17,6 +17,19 @@ interface BukuTamuEntry {
   created_at: string;
 }
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function BukuTamuPage() {
   const [data, setData] = useState<BukuTamuEntry[]>([]);
   const [filtered, setFiltered] = useState<BukuTamuEntry[]>([]);
@@ -158,12 +171,14 @@ export default function BukuTamuPage() {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {isAdmin() && (
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

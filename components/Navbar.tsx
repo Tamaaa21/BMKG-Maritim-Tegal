@@ -38,15 +38,14 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        showScrolledBg ? "bg-transparent" : "bg-[#003399] shadow-lg"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${showScrolledBg ? "bg-transparent" : "bg-[#003399] shadow-lg"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
               <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
             </div>
             <div className={minimal ? "block" : "hidden sm:block"}>
@@ -59,14 +58,12 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
           {!minimal && (
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => (
-                <Link key={link.label} href={link.href} onClick={() => setMenuOpen(false)} className={`px-4 py-2 text-sm font-medium transition-colors rounded-md relative group ${
-                  active === link.label ? "text-white" : "text-blue-100 hover:text-white"
-                }`}>
+                <Link key={link.label} href={link.href} onClick={() => setMenuOpen(false)} className={`px-4 py-2 text-sm font-medium transition-colors rounded-md relative group ${active === link.label ? "text-white" : "text-blue-100 hover:text-white"
+                  }`}>
                   {link.label}
                   <span
-                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-yellow-400 transition-all duration-200 ${
-                      active === link.label ? "w-3/4" : "w-0 group-hover:w-3/4"
-                    }`}
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-yellow-400 transition-all duration-200 ${active === link.label ? "w-3/4" : "w-0 group-hover:w-3/4"
+                      }`}
                   />
                 </Link>
               ))}

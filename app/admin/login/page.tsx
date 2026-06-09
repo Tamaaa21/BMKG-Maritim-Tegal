@@ -41,6 +41,9 @@ export default function AdminLoginPage() {
       }
 
       sessionStorage.setItem("adminToken", data.token);
+      if (data.user) {
+        sessionStorage.setItem("adminUser", JSON.stringify(data.user));
+      }
       router.push("/admin/dashboard");
     } catch (err) {
       setError("Terjadi kesalahan server");

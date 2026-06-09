@@ -6,6 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { kegiatanCategories } from "@/components/kegiatanCategories";
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function KegiatanManager() {
   const [items, setItems] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -142,7 +155,9 @@ export default function KegiatanManager() {
                         setEditingId(item.id);
                         setEditValues({ title: item.title, description: item.description, event_date: item.event_date, category: item.category });
                       }} className="text-sm px-2 py-1 bg-blue-600 text-white rounded">Edit</button>
-                      <button onClick={() => handleDelete(item.id)} className="text-red-500 px-2 py-1"><Trash /></button>
+                      {isAdmin() && (
+                        <button onClick={() => handleDelete(item.id)} className="text-red-500 px-2 py-1"><Trash /></button>
+                      )}
                     </>
                   )}
                 </div>

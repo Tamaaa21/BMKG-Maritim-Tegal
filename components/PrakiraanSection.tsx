@@ -64,8 +64,8 @@ const getCardConfig = (title: string) => {
   return { icon: Sun, color: "from-indigo-900/80" };
 };
 
-// Popup shown when user clicks an expired card
-function ExpiredPopup({ title, onClose }: { title: string; onClose: () => void }) {
+// Popup shown when user clicks an expired or scheduled card
+function ExpiredPopup({ title, onClose, isScheduled }: { title: string; onClose: () => void; isScheduled?: boolean }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
@@ -76,14 +76,18 @@ function ExpiredPopup({ title, onClose }: { title: string; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center">
-          <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
-            <AlertCircle size={28} className="text-amber-500" />
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isScheduled ? "bg-blue-100" : "bg-amber-100"}`}>
+            <AlertCircle size={28} className={isScheduled ? "text-blue-500" : "text-amber-500"} />
           </div>
         </div>
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Halaman Belum Diperbarui</h3>
+          <h3 className="text-lg font-bold text-gray-900">{isScheduled ? "Belum Tersedia" : "Halaman Belum Diperbarui"}</h3>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-            Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> sudah melewati masa tayang. Silakan kembali lagi nanti untuk informasi terbaru.
+            {isScheduled ? (
+              <>Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> belum mulai tayang. Silakan kembali lagi pada jadwal yang telah ditentukan.</>
+            ) : (
+              <>Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> sudah melewati masa tayang. Silakan kembali lagi nanti untuk informasi terbaru.</>
+            )}
           </p>
         </div>
         <button
@@ -101,7 +105,7 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
   const router = useRouter();
   const [forecastCards, setForecastCards] = useState<any[]>(defaultForecastCards);
   const [loading, setLoading] = useState(true);
-  const [expiredPopup, setExpiredPopup] = useState<{ title: string } | null>(null);
+  const [expiredPopup, setExpiredPopup] = useState<{ title: string; isScheduled?: boolean } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -112,6 +116,7 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
         const json = await res.json();
         if (mounted && json?.success && Array.isArray(json.data)) {
           if (json.data.length > 0) {
+            const now = new Date();
             const mapped = json.data.map((it: any) => {
               const { icon, color } = getCardConfig(it.title);
               return {
@@ -122,7 +127,14 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
                 icon: icon,
                 color: color,
                 created_at: it.created_at || null,
+                waktu_mulai: it.waktu_mulai || null,
                 waktu_berakhir: it.waktu_berakhir || null,
+                next_url: it.next_url || null,
+                next_explanation: it.next_explanation || null,
+                next_waktu_mulai: it.next_waktu_mulai || null,
+                next_waktu_berakhir: it.next_waktu_berakhir || null,
+                display_type: it.display_type || "gambar_saja",
+                gallery_images: it.gallery_images || [],
               };
             });
             setForecastCards(mapped);
@@ -143,15 +155,14 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
   }, []);
 
   const handleCardClick = (card: any) => {
-    const isExpired = card.waktu_berakhir && new Date(card.waktu_berakhir) < new Date();
-    if (isExpired) {
-      // Show "belum diperbarui" popup — card stays visible but doesn't navigate
-      setExpiredPopup({ title: card.title });
+    const now = new Date();
+    const isExpired = card.waktu_berakhir && new Date(card.waktu_berakhir) < now;
+    const isScheduled = card.waktu_mulai && new Date(card.waktu_mulai) > now;
+    if (isExpired || isScheduled) {
+      setExpiredPopup({ title: card.title, isScheduled });
     } else if (card.id) {
-      // Navigate to full detail page
       router.push(`/prakiraan/${card.id}`);
     } else {
-      // Default cards (no id from DB) — show expired popup as fallback
       setExpiredPopup({ title: card.title });
     }
   };
@@ -178,21 +189,30 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
           <div className="flex flex-wrap justify-center items-stretch gap-6">
             {(limit ? forecastCards.slice(0, limit) : forecastCards).map((card, i) => {
               const Icon = card.icon;
-              const isExpired = card.waktu_berakhir && new Date(card.waktu_berakhir) < new Date();
+              const now = new Date();
+              const isExpired = card.waktu_berakhir && new Date(card.waktu_berakhir) < now;
+              const isScheduled = !isExpired && card.waktu_mulai && new Date(card.waktu_mulai) > now;
+              const isUnavailable = isExpired || isScheduled;
+              const isActive = !isUnavailable;
               return (
                 <button
                   key={i}
                   onClick={() => handleCardClick(card)}
                   className={`w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col text-left h-full relative ${
-                    isExpired
+                    isUnavailable
                       ? "border-gray-200 opacity-75 hover:opacity-100"
                       : "border-gray-200 hover:border-[#003399]"
                   }`}
                 >
-                  {/* Expired badge */}
+                  {/* Unavailable badge */}
                   {isExpired && (
                     <span className="absolute top-3 left-3 z-10 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                       Belum Diperbarui
+                    </span>
+                  )}
+                  {isScheduled && (
+                    <span className="absolute top-3 left-3 z-10 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                      Terjadwal
                     </span>
                   )}
 
@@ -200,10 +220,10 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
                     <img
                       src={card.image}
                       alt={card.title}
-                      className={`w-full h-full object-cover transition-transform duration-500 ${isExpired ? "" : "group-hover:scale-105"}`}
+                      className={`w-full h-full object-cover transition-transform duration-500 ${isUnavailable ? "" : "group-hover:scale-105"}`}
                     />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${card.color} to-transparent ${isExpired ? "opacity-80" : "opacity-65"}`} />
-                    {isExpired && (
+                    <div className={`absolute inset-0 bg-gradient-to-t ${card.color} to-transparent ${isUnavailable ? "opacity-80" : "opacity-65"}`} />
+                    {isUnavailable && (
                       <div className="absolute inset-0 bg-gray-900/20" />
                     )}
                     <div className="absolute top-4 left-4 w-9 h-9 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white">
@@ -213,16 +233,24 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
 
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className={`font-bold text-sm md:text-base mb-2 leading-snug line-clamp-2 transition-colors ${isExpired ? "text-gray-500" : "text-gray-900 group-hover:text-[#003399]"}`}>
+                      <h3 className={`font-bold text-sm md:text-base mb-2 leading-snug line-clamp-2 transition-colors ${isUnavailable ? "text-gray-500" : "text-gray-900 group-hover:text-[#003399]"}`}>
                         {card.title}
                       </h3>
                       <p className="text-gray-500 text-xs leading-relaxed line-clamp-3">
                         {card.desc ? card.desc.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ') : ""}
                       </p>
+
+                      {/* Next Forecast Badge */}
+                      {card.next_url && isActive && (
+                        <div className="mt-3 flex items-center gap-2 text-[10px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block flex-shrink-0" />
+                          <span className="font-medium">Prakiraan berikutnya tersedia</span>
+                        </div>
+                      )}
                     </div>
-                    <div className={`mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-semibold ${isExpired ? "text-amber-500" : "text-[#003399]"}`}>
-                      <span>{isExpired ? "Belum Diperbarui" : "Lihat Detail"}</span>
-                      <ChevronRight size={14} className={isExpired ? "" : "group-hover:translate-x-1 transition-transform"} />
+                    <div className={`mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-semibold ${isUnavailable ? "text-amber-500" : "text-[#003399]"}`}>
+                      <span>{isExpired ? "Belum Diperbarui" : isScheduled ? "Akan Datang" : "Lihat Detail"}</span>
+                      <ChevronRight size={14} className={isUnavailable ? "" : "group-hover:translate-x-1 transition-transform"} />
                     </div>
                   </div>
                 </button>

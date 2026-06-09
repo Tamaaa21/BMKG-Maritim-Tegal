@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, X, Edit3, Trash2, Check, Plus, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Upload, X, Edit3, Trash2, Check, Plus, Calendar, Clock, AlertCircle, ChevronDown } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
@@ -14,10 +14,30 @@ interface PrakiraanItem {
   title: string;
   url: string;
   explanation: string;
+  waktu_mulai?: string;
   waktu_berakhir?: string;
   created_at?: string;
   uploader?: string;
+  next_url?: string;
+  next_explanation?: string;
+  next_waktu_mulai?: string;
+  next_waktu_berakhir?: string;
+  display_type?: string;
+  gallery_images?: string[];
 }
+
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+const isAdmin = () => {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+};
 
 const formatToDateOnly = (isoString?: string) => {
   if (!isoString) return "";
@@ -43,11 +63,24 @@ const dateToEndOfDayISO = (dateStr: string) => {
   }
 };
 
+// Convert a YYYY-MM-DD string to start-of-day ISO string (00:00:00)
+const dateToStartOfDayISO = (dateStr: string) => {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(dateStr + "T00:00:00");
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString();
+  } catch {
+    return null;
+  }
+};
+
 
 export default function PrakiraanManager() {
   const [items, setItems] = useState<PrakiraanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showNextSection, setShowNextSection] = useState(false);
 
   // Modal Editor States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,8 +90,17 @@ export default function PrakiraanManager() {
     title: string;
     url: string;
     explanation: string;
+    waktu_mulai?: string;
     waktu_berakhir?: string;
     file?: File;
+    next_url?: string;
+    next_explanation?: string;
+    next_waktu_mulai?: string;
+    next_waktu_berakhir?: string;
+    nextFile?: File;
+    display_type?: string;
+    gallery_images?: string[];
+    galleryFiles?: File[];
   } | null>(null);
 
   const fetchItems = async () => {
@@ -81,23 +123,40 @@ export default function PrakiraanManager() {
 
   const handleOpenAdd = () => {
     setModalMode("add");
+    setShowNextSection(false);
     setEditingEntry({
       title: "",
       url: "",
       explanation: "",
+      waktu_mulai: "",
       waktu_berakhir: "",
+      next_url: "",
+      next_explanation: "",
+      next_waktu_mulai: "",
+      next_waktu_berakhir: "",
+      display_type: "gambar_saja",
+      gallery_images: [],
     });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (item: PrakiraanItem) => {
     setModalMode("edit");
+    const hasNext = !!item.next_url;
+    setShowNextSection(hasNext);
     setEditingEntry({
       id: item.id,
       title: item.title,
       url: item.url,
       explanation: item.explanation || "",
+      waktu_mulai: item.waktu_mulai ? formatToDateOnly(item.waktu_mulai) : "",
       waktu_berakhir: item.waktu_berakhir ? formatToDateOnly(item.waktu_berakhir) : "",
+      next_url: item.next_url || "",
+      next_explanation: item.next_explanation || "",
+      next_waktu_mulai: item.next_waktu_mulai ? formatToDateOnly(item.next_waktu_mulai) : "",
+      next_waktu_berakhir: item.next_waktu_berakhir ? formatToDateOnly(item.next_waktu_berakhir) : "",
+      display_type: item.display_type || "gambar_saja",
+      gallery_images: item.gallery_images || [],
     });
     setIsModalOpen(true);
   };
@@ -145,8 +204,24 @@ export default function PrakiraanManager() {
         form.append("title", editingEntry.title);
         form.append("explanation", editingEntry.explanation);
         form.append("uploader", username);
+        form.append("display_type", editingEntry.display_type || "gambar_saja");
         if (editingEntry.waktu_berakhir) {
           form.append("waktu_berakhir", dateToEndOfDayISO(editingEntry.waktu_berakhir) || "");
+        }
+        if (editingEntry.waktu_mulai) {
+          form.append("waktu_mulai", dateToStartOfDayISO(editingEntry.waktu_mulai) || "");
+        }
+        if (editingEntry.nextFile) {
+          form.append("nextFile", editingEntry.nextFile);
+        }
+        if (editingEntry.next_explanation) {
+          form.append("next_explanation", editingEntry.next_explanation);
+        }
+        if (editingEntry.next_waktu_mulai) {
+          form.append("next_waktu_mulai", dateToStartOfDayISO(editingEntry.next_waktu_mulai) || "");
+        }
+        if (editingEntry.next_waktu_berakhir) {
+          form.append("next_waktu_berakhir", dateToEndOfDayISO(editingEntry.next_waktu_berakhir) || "");
         }
 
         const res = await fetch("/api/admin/prakiraan-images", {
@@ -164,11 +239,12 @@ export default function PrakiraanManager() {
         }
       } else if (modalMode === "edit" && editingEntry.id) {
         let finalUrl = editingEntry.url;
+        let finalNextUrl = editingEntry.next_url;
 
-        // If a new file was chosen during edit, upload it first
-        if (editingEntry.file) {
+        // Helper to upload a file and get its URL
+        const uploadTempImage = async (file: File): Promise<string> => {
           const form = new FormData();
-          form.append("file", editingEntry.file);
+          form.append("file", file);
           form.append("title", editingEntry.title + " (temp)");
           const uploadRes = await fetch("/api/admin/prakiraan-images", {
             method: "POST",
@@ -176,25 +252,55 @@ export default function PrakiraanManager() {
           });
           const uploadBody = await uploadRes.json();
           if (uploadBody?.success && uploadBody.data?.url) {
-            finalUrl = uploadBody.data.url;
             // Clean up the temporary row created by upload
             await fetch(`/api/admin/prakiraan-images/${uploadBody.data.id}`, { method: "DELETE" });
-          } else {
-            throw new Error("Gagal mengunggah gambar baru");
+            return uploadBody.data.url;
           }
+          throw new Error("Gagal mengunggah gambar");
+        };
+
+        // If a new current file was chosen during edit, upload it first
+        if (editingEntry.file) {
+          finalUrl = await uploadTempImage(editingEntry.file);
+        }
+
+        // If a new next file was chosen during edit, upload it first
+        if (editingEntry.nextFile) {
+          finalNextUrl = await uploadTempImage(editingEntry.nextFile);
+        }
+
+        // Build patch payload
+        const patchPayload: any = {
+          title: editingEntry.title,
+          url: finalUrl,
+          explanation: editingEntry.explanation,
+          waktu_mulai: editingEntry.waktu_mulai ? dateToStartOfDayISO(editingEntry.waktu_mulai) : null,
+          waktu_berakhir: editingEntry.waktu_berakhir ? dateToEndOfDayISO(editingEntry.waktu_berakhir) : null,
+          display_type: editingEntry.display_type || "gambar_saja",
+          uploader: username,
+        };
+        if (finalNextUrl !== undefined) {
+          patchPayload.next_url = finalNextUrl;
+        }
+        if (editingEntry.next_explanation !== undefined) {
+          patchPayload.next_explanation = editingEntry.next_explanation;
+        }
+        if (editingEntry.next_waktu_mulai) {
+          patchPayload.next_waktu_mulai = dateToStartOfDayISO(editingEntry.next_waktu_mulai);
+        } else {
+          patchPayload.next_waktu_mulai = null;
+        }
+        if (editingEntry.next_waktu_berakhir) {
+          patchPayload.next_waktu_berakhir = dateToEndOfDayISO(editingEntry.next_waktu_berakhir);
+        } else {
+          patchPayload.next_waktu_berakhir = null;
         }
 
         // Update existing entry
         const res = await fetch(`/api/admin/prakiraan-images/${editingEntry.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: editingEntry.title,
-            url: finalUrl,
-            explanation: editingEntry.explanation,
-            waktu_berakhir: editingEntry.waktu_berakhir ? dateToEndOfDayISO(editingEntry.waktu_berakhir) : null,
-            uploader: username,
-          }),
+          body: JSON.stringify(patchPayload),
         });
         const body = await res.json();
         if (body?.success) {
@@ -246,72 +352,215 @@ export default function PrakiraanManager() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => {
-              const isExpired = item.waktu_berakhir && new Date(item.waktu_berakhir) < new Date();
+              const now = new Date();
+              const isExpired = item.waktu_berakhir && new Date(item.waktu_berakhir) < now;
+              const isScheduled = item.waktu_mulai && new Date(item.waktu_mulai) > now;
+              const isActive = !isExpired && !isScheduled;
+
+              // Calculate days until scheduled
+              const daysUntilStart = isScheduled && item.waktu_mulai
+                ? Math.ceil((new Date(item.waktu_mulai).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+
+              // Calculate days until expiry
+              const daysUntilExpiry = !isExpired && item.waktu_berakhir
+                ? Math.ceil((new Date(item.waktu_berakhir).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                  className={`bg-white rounded-2xl border overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-lg transition-all group ${
+                    isScheduled ? "border-amber-200 ring-1 ring-amber-100" :
+                    isExpired ? "border-red-200 opacity-75" :
+                    "border-gray-200"
+                  }`}
                 >
-                  <div>
-                    {/* Thumbnail */}
-                    <div className="w-full h-40 overflow-hidden bg-gray-100 relative">
-                      <img src={item.url} className="w-full h-full object-cover" alt={item.title} />
+                  {/* Gambar Preview — lebih tinggi & informatif */}
+                  <div className="relative w-full h-48 overflow-hidden bg-gray-100">
+                    <img
+                      src={item.url}
+                      className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${isExpired ? "grayscale" : ""}`}
+                      alt={item.title}
+                    />
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                    {/* Status Badge */}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
                       {isExpired && (
-                        <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
                           Kadaluwarsa
+                        </span>
+                      )}
+                      {isScheduled && !isExpired && (
+                        <span className="bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+                          Terjadwal
+                        </span>
+                      )}
+                      {isActive && (
+                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+                          Aktif
                         </span>
                       )}
                     </div>
 
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-base line-clamp-1">{item.title}</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Uploader: {item.uploader || "admin"}</p>
+                    {/* Countdown badge for scheduled */}
+                    {isScheduled && daysUntilStart !== null && (
+                      <div className="absolute top-3 right-3 bg-amber-900/80 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
+                        {daysUntilStart === 0 ? "Mulai Hari Ini" : `${daysUntilStart}h lagi`}
                       </div>
+                    )}
 
-                      <div>
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Penjelasan</p>
-                        <p className="text-gray-700 text-xs leading-relaxed line-clamp-3 mt-0.5">
-                          {item.explanation ? item.explanation.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ') : <span className="text-gray-400 italic">Belum ada penjelasan</span>}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {item.waktu_berakhir ? (
-                            <span className={isExpired ? "text-red-500 font-medium" : "text-emerald-600 font-medium"}>
-                              Exp: {new Date(item.waktu_berakhir).toLocaleDateString("id-ID")}
-                            </span>
-                          ) : (
-                            "Tidak Berakhir"
-                          )}
+                    {/* Display Type Badge */}
+                    {item.display_type && item.display_type !== "gambar_saja" && (
+                      <div className="absolute top-10 right-3">
+                        <span className="bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {item.display_type === "gambar_teks" ? "Gbr + Teks" : "Galeri"}
                         </span>
-                        {item.waktu_berakhir && (
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
-                            {new Date(item.waktu_berakhir).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        )}
                       </div>
+                    )}
+
+                    {/* Title overlay at bottom */}
+                    <div className="absolute bottom-0 left-0 right-0 px-3 pb-3 pt-1">
+                      <h3 className="font-bold text-white text-sm line-clamp-1 drop-shadow">{item.title}</h3>
+                      <p className="text-white/70 text-[10px] mt-0.5">oleh {item.uploader || "admin"}</p>
                     </div>
                   </div>
 
+                  {/* Info Body */}
+                  <div className="p-4 flex flex-col gap-3 flex-1">
+
+                    {/* Jadwal Info — Prominent */}
+                    <div className={`rounded-xl p-3 flex flex-col gap-2 text-xs ${
+                      isScheduled ? "bg-amber-50 border border-amber-100" :
+                      isExpired ? "bg-red-50 border border-red-100" :
+                      "bg-emerald-50 border border-emerald-100"
+                    }`}>
+                      <p className={`font-bold uppercase tracking-wide text-[10px] ${
+                        isScheduled ? "text-amber-700" :
+                        isExpired ? "text-red-700" :
+                        "text-emerald-700"
+                      }`}>
+                        {isScheduled ? "📅 Jadwal Tayang Berikutnya" : isExpired ? "⛔ Sudah Berakhir" : "✅ Jadwal Tayang"}
+                      </p>
+
+                      <div className="flex flex-col gap-1.5">
+                        {item.waktu_mulai && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 flex items-center gap-1">
+                              <Calendar size={10} /> Mulai
+                            </span>
+                            <span className={`font-semibold ${isScheduled ? "text-amber-700" : "text-gray-700"}`}>
+                              {new Date(item.waktu_mulai).toLocaleDateString("id-ID", {
+                                day: "2-digit", month: "short", year: "numeric"
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <Clock size={10} /> Berakhir
+                          </span>
+                          {item.waktu_berakhir ? (
+                            <span className={`font-semibold ${isExpired ? "text-red-600" : "text-gray-700"}`}>
+                              {new Date(item.waktu_berakhir).toLocaleDateString("id-ID", {
+                                day: "2-digit", month: "short", year: "numeric"
+                              })}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic text-[10px]">Tidak terbatas</span>
+                          )}
+                        </div>
+
+                        {/* Countdown bar for active items */}
+                        {isActive && daysUntilExpiry !== null && daysUntilExpiry <= 7 && (
+                          <div className="mt-1">
+                            <div className="flex justify-between text-[10px] text-orange-600 font-medium mb-1">
+                              <span>Sisa waktu tayang</span>
+                              <span>{daysUntilExpiry} hari</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-orange-400 rounded-full transition-all"
+                                style={{ width: `${Math.max(5, (daysUntilExpiry / 7) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Penjelasan singkat */}
+                    {item.explanation && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Penjelasan</p>
+                        <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">
+                          {item.explanation.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ')}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Next Forecast Section */}
+                    {item.next_url && (
+                      <div className="rounded-xl p-3 border border-dashed border-blue-200 bg-blue-50/50">
+                        <p className="font-bold uppercase tracking-wide text-[10px] text-blue-700 mb-2">
+                          📋 Prakiraan Berikutnya
+                        </p>
+                        <div className="flex gap-2 mb-2">
+                          <img
+                            src={item.next_url}
+                            alt="Next forecast"
+                            className="w-16 h-12 rounded-lg object-cover border border-blue-100 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            {item.next_waktu_mulai && (
+                              <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                <Calendar size={9} />
+                                Mulai: {new Date(item.next_waktu_mulai).toLocaleDateString("id-ID", {
+                                  day: "2-digit", month: "short", year: "numeric"
+                                })}
+                              </p>
+                            )}
+                            {item.next_waktu_berakhir && (
+                              <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Clock size={9} />
+                                Berakhir: {new Date(item.next_waktu_berakhir).toLocaleDateString("id-ID", {
+                                  day: "2-digit", month: "short", year: "numeric"
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {item.next_explanation && (
+                          <p className="text-[10px] text-gray-500 leading-relaxed line-clamp-2">
+                            {item.next_explanation.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Actions */}
-                  <div className="flex gap-2 p-4 pt-0 border-t border-gray-50 mt-3">
+                  <div className="flex gap-2 px-4 pb-4">
                     <button
                       onClick={() => handleOpenEdit(item)}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 border border-blue-100 rounded-lg text-[#003399] hover:bg-blue-50/50 font-semibold transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 text-xs py-2 border border-blue-100 rounded-xl text-[#003399] hover:bg-blue-50/70 font-semibold transition-colors"
                     >
-                      <Edit3 size={12} /> Edit
+                      <Edit3 size={12} /> Edit Kartu
                     </button>
-                    <button
-                      onClick={() => deleteEntry(item.id)}
-                      className="flex items-center justify-center p-2 border border-red-100 rounded-lg text-red-600 hover:bg-red-50/50 transition-colors"
-                      title="Hapus kartu"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {isAdmin() && (
+                      <button
+                        onClick={() => deleteEntry(item.id)}
+                        className="flex items-center justify-center px-3 py-2 border border-red-100 rounded-xl text-red-600 hover:bg-red-50/70 transition-colors"
+                        title="Hapus kartu"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -400,6 +649,24 @@ export default function PrakiraanManager() {
                 </div>
               </div>
 
+              {/* Mode Tampilan */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-gray-700">Mode Tampilan</label>
+                <select
+                  value={editingEntry.display_type || "gambar_saja"}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, display_type: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#003399] bg-white text-gray-900"
+                  disabled={saving}
+                >
+                  <option value="gambar_saja">Gambar Saja</option>
+                  <option value="gambar_teks">Gambar + Teks</option>
+                  <option value="gambar_galeri">Gambar + Galeri</option>
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  <strong>Gambar Saja:</strong> Tampilkan gambar penuh. <strong>Gambar + Teks:</strong> Tampilkan dengan overlay teks. <strong>Galeri:</strong> Tampilkan dengan thumbnail tambahan.
+                </p>
+              </div>
+
               {/* Penjelasan Textarea */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-gray-700">Penjelasan Cuaca Detail</label>
@@ -439,6 +706,21 @@ export default function PrakiraanManager() {
                 `}</style>
               </div>
 
+              {/* Tanggal Mulai */}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-gray-700">Tanggal Mulai Tayang</label>
+                <input
+                  type="date"
+                  value={editingEntry.waktu_mulai || ""}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, waktu_mulai: e.target.value })}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#003399] bg-white text-gray-900"
+                  disabled={saving}
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Kartu prakiraan akan mulai tampil di halaman pengguna mulai tanggal ini. Kosongkan jika langsung tampil.
+                </p>
+              </div>
+
               {/* Tanggal Berakhir */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-gray-700">Tanggal Berakhir</label>
@@ -453,6 +735,113 @@ export default function PrakiraanManager() {
                   Kartu prakiraan ini akan otomatis disembunyikan dari halaman pengguna setelah tanggal di atas. Kosongkan jika tidak berdurasi.
                 </p>
               </div>
+
+              {/* Next Forecast Toggle */}
+              <div className="border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowNextSection(!showNextSection)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Prakiraan Berikutnya</p>
+                    <p className="text-[11px] text-gray-400">Tambah jadwal prakiraan cuaca untuk periode selanjutnya</p>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`text-gray-400 transition-transform duration-200 ${
+                      showNextSection ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Next Forecast Content */}
+              {showNextSection && (
+                <div className="space-y-4 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                  <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide">Informasi Prakiraan Berikutnya</p>
+
+                  {/* Upload Gambar Next */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Gambar Prakiraan Berikutnya</label>
+                    <div className="flex items-center gap-4">
+                      {editingEntry.next_url && (
+                        <div className="w-24 h-16 rounded-lg overflow-hidden border bg-gray-100 shrink-0">
+                          <img src={editingEntry.next_url} className="w-full h-full object-cover" alt="Next Preview" />
+                        </div>
+                      )}
+                      <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-blue-300 hover:border-[#003399] rounded-xl hover:bg-blue-50/10 cursor-pointer transition-all duration-200">
+                        <Upload size={16} className="text-gray-400" />
+                        <span className="text-xs text-gray-600 font-semibold">
+                          {editingEntry.nextFile ? editingEntry.nextFile.name : "Pilih Gambar (Image)"}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setEditingEntry({
+                                ...editingEntry,
+                                nextFile: file,
+                                next_url: URL.createObjectURL(file),
+                              });
+                            }
+                          }}
+                          disabled={saving}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Penjelasan Next */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Penjelasan Prakiraan Berikutnya</label>
+                    <div className="bg-white rounded-xl overflow-hidden border border-blue-200">
+                      <ReactQuill
+                        theme="snow"
+                        value={editingEntry.next_explanation || ""}
+                        onChange={(content) => setEditingEntry({ ...editingEntry, next_explanation: content })}
+                        placeholder="Tuliskan informasi penjelasan detail untuk prakiraan berikutnya..."
+                        readOnly={saving}
+                        className="min-h-[120px] quill-editor"
+                        modules={{
+                          toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                            ['clean']
+                          ],
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tanggal Mulai Next */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Tanggal Mulai Tayang (Berikutnya)</label>
+                    <input
+                      type="date"
+                      value={editingEntry.next_waktu_mulai || ""}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, next_waktu_mulai: e.target.value })}
+                      className="w-full rounded-xl border border-blue-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#003399] bg-white text-gray-900"
+                      disabled={saving}
+                    />
+                  </div>
+
+                  {/* Tanggal Berakhir Next */}
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Tanggal Berakhir (Berikutnya)</label>
+                    <input
+                      type="date"
+                      value={editingEntry.next_waktu_berakhir || ""}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, next_waktu_berakhir: e.target.value })}
+                      className="w-full rounded-xl border border-blue-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#003399] bg-white text-gray-900"
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}

@@ -5,6 +5,19 @@ import { Upload, Trash, Plus, FileText, Image } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function PublicationManager() {
   const [items, setItems] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -156,13 +169,15 @@ export default function PublicationManager() {
 
                 <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 text-[10px] text-gray-400">
                   <span>Oleh: {it.uploader || "admin"}</span>
-                  <button 
-                    className="bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 text-red-600 rounded-lg p-1.5 transition-colors" 
-                    onClick={()=>handleDelete(it.id)}
-                    title="Hapus publikasi"
-                  >
-                    <Trash size={12} />
-                  </button>
+                  {isAdmin() && (
+                    <button 
+                      className="bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 text-red-600 rounded-lg p-1.5 transition-colors" 
+                      onClick={()=>handleDelete(it.id)}
+                      title="Hapus publikasi"
+                    >
+                      <Trash size={12} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

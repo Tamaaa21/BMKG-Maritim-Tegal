@@ -4,6 +4,19 @@ import { useEffect, useState } from "react";
 import { Upload, Trash, Calendar, AlertCircle } from "lucide-react";
 import { Input } from '@/components/ui/input';
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function PamfletManager() {
   const [items, setItems] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -143,13 +156,15 @@ export default function PamfletManager() {
                     {isExpired ? 'Exp:' : 'Berakhir:'} {new Date(it.waktu_berakhir).toLocaleDateString('id-ID')}
                   </div>
                 )}
-                <button
-                  className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors opacity-0 group-hover:opacity-100"
-                  onClick={() => handleDelete(it.id)}
-                  title="Hapus pamflet"
-                >
-                  <Trash size={12} />
-                </button>
+                {isAdmin() && (
+                  <button
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors opacity-0 group-hover:opacity-100"
+                    onClick={() => handleDelete(it.id)}
+                    title="Hapus pamflet"
+                  >
+                    <Trash size={12} />
+                  </button>
+                )}
               </div>
             );
           })}
