@@ -13,6 +13,19 @@ interface LayananCard {
   created_at: string;
 }
 
+function getUserRole(): string {
+  try {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
+    if (stored) return JSON.parse(stored).role || "";
+  } catch {}
+  return "";
+}
+
+function isAdmin() {
+  const role = getUserRole();
+  return role === "admin" || role === "super_admin";
+}
+
 export default function LayananAdminPage() {
   const [services, setServices] = useState<LayananCard[]>([]);
   const [filtered, setFiltered] = useState<LayananCard[]>([]);
@@ -160,13 +173,15 @@ export default function LayananAdminPage() {
           <h1 className="text-3xl font-bold text-gray-900">Kelola Kartu Layanan</h1>
           <p className="text-gray-500 mt-2">Manajemen kartu layanan yang tampil pada halaman utama pengguna.</p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all text-sm shrink-0"
-        >
-          <Plus size={18} />
-          Tambah Pelayanan
-        </button>
+        {isAdmin() && (
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all text-sm shrink-0"
+          >
+            <Plus size={18} />
+            Tambah Pelayanan
+          </button>
+        )}
       </div>
 
       {/* Search bar */}
@@ -237,13 +252,15 @@ export default function LayananAdminPage() {
                         >
                           <Edit2 size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                          title="Hapus Kartu Layanan"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {isAdmin() && (
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                            title="Hapus Kartu Layanan"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

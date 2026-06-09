@@ -1,13 +1,19 @@
 "use client";
 
-import { MessageSquare, FileText, ImageIcon } from "lucide-react";
+import { MessageSquare, FileText, ImageIcon, Users, LogIn } from "lucide-react";
 import { useAdminRealtime } from "@/components/AdminRealtimeProvider";
 import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
   const { stats } = useAdminRealtime();
+  const [userCount, setUserCount] = useState(0);
 
- 
+  useEffect(() => {
+    fetch("/api/admin/stats/users")
+      .then(r => r.json())
+      .then(d => { if (typeof d.count === "number") setUserCount(d.count); })
+      .catch(() => {});
+  }, []);
 
   const cards = [
     {
@@ -33,6 +39,22 @@ export default function AdminDashboard() {
       color: "bg-purple-100",
       textColor: "text-purple-600",
       href: "/admin/layanan?tab=nol-rupiah",
+    },
+    {
+      title: "Karyawan Aktif",
+      value: userCount,
+      icon: Users,
+      color: "bg-orange-100",
+      textColor: "text-orange-600",
+      href: "/admin/users",
+    },
+    {
+      title: "History Login",
+      value: "Lihat",
+      icon: LogIn,
+      color: "bg-teal-100",
+      textColor: "text-teal-600",
+      href: "/admin/login-history",
     },
   ];
 
@@ -95,10 +117,28 @@ export default function AdminDashboard() {
               <p className="text-gray-500 text-xs">Ubah gambar utama prakiraan</p>
             </div>
           </a>
+          <a
+            href="/admin/users"
+            className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border border-gray-200 rounded-lg hover:border-[#003399] hover:bg-blue-50 transition-all group"
+          >
+            <Users size={18} className="text-[#003399] group-hover:scale-110 transition-transform flex-shrink-0 md:w-5 md:h-5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 text-sm md:text-base truncate">Manajemen Karyawan</p>
+              <p className="text-gray-500 text-xs">Atur hak akses pengguna</p>
+            </div>
+          </a>
+          <a
+            href="/admin/login-history"
+            className="flex items-center gap-2 md:gap-3 p-3 md:p-4 border border-gray-200 rounded-lg hover:border-[#003399] hover:bg-blue-50 transition-all group"
+          >
+            <LogIn size={18} className="text-[#003399] group-hover:scale-110 transition-transform flex-shrink-0 md:w-5 md:h-5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 text-sm md:text-base truncate">History Login</p>
+              <p className="text-gray-500 text-xs">Pantau aktivitas login</p>
+            </div>
+          </a>
         </div>
       </div>
-
-     
     </div>
   );
 }

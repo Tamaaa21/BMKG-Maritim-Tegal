@@ -2,12 +2,36 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, ImageIcon, BarChart3, MessageSquare, FileText, LogOut, Menu, X, Bell, Trash2, Settings } from "lucide-react";
+import { LayoutDashboard, ImageIcon, BarChart3, MessageSquare, FileText, LogOut, Menu, X, Bell, Trash2, Settings, Users, LogIn, Shield } from "lucide-react";
 import { NotificationProvider, useNotification } from "@/components/NotificationProvider";
 import { AdminRealtimeProvider } from "@/components/AdminRealtimeProvider";
 import supabase from "@/lib/supabaseBrowser";
 
-const navItems = [
+interface UserInfo {
+  username: string;
+  role: string;
+  nama: string;
+  id: string;
+}
+
+function decodeUserFromToken(): UserInfo | null {
+  try {
+    const token = sessionStorage.getItem("adminToken");
+    if (!token) return null;
+    const decoded = atob(token);
+    // Format: username:id:timestamp
+    const parts = decoded.split(":");
+    if (parts.length >= 2) {
+      const stored = sessionStorage.getItem("adminUser");
+      if (stored) return JSON.parse(stored);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const contentNavItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/hero-manager", label: "Slider Home", icon: ImageIcon },
   { href: "/admin/publikasi-manager", label: "Publikasi / Buletin", icon: FileText },
@@ -16,7 +40,16 @@ const navItems = [
   { href: "/admin/kegiatan-manager", label: "Dokumentasi Kegiatan", icon: ImageIcon },
   { href: "/admin/buku-tamu", label: "Data Buku Tamu", icon: MessageSquare },
   { href: "/admin/layanan", label: "Kelola Layanan", icon: FileText },
+  { href: "/admin/login-history", label: "History Login", icon: LogIn },
   { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
+];
+
+const adminNavItems = [
+  { href: "/admin/users", label: "Manajemen Karyawan", icon: Users },
+];
+
+const ADMIN_ONLY_PATHS = [
+  "/admin/users",
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -35,8 +68,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const { notifications, removeNotification, showNotification } = useNotification();
   const [notifOpen, setNotifOpen] = useState(false);
+
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const userInitial = user?.nama?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || "A";
 
   useEffect(() => {
     const client = supabase;
@@ -85,35 +122,41 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const token = sessionStorage.getItem("adminToken");
-      // Debug: ensure we never stay loading indefinitely
+      const storedUser = sessionStorage.getItem("adminUser");
       if (!token) {
         setIsLoggedIn(false);
         setLoading(false);
-        // If we're already on the login page, don't push to avoid redirect loop
         if (pathname !== "/admin/login") {
           router.push("/admin/login");
         }
       } else {
+        let userData: UserInfo | null = null;
+        if (storedUser) {
+          try { userData = JSON.parse(storedUser); setUser(userData); } catch {}
+        }
         setIsLoggedIn(true);
         setLoading(false);
+
+        // Redirect karyawan trying to access admin-only pages
+        if (userData) {
+          const isUserAdmin = userData.role === "admin" || userData.role === "super_admin";
+          if (!isUserAdmin && ADMIN_ONLY_PATHS.includes(pathname)) {
+            router.push("/admin/dashboard");
+          }
+        }
       }
     } catch (err) {
-      // If sessionStorage access fails for any reason, stop loading and redirect to login
-      // eslint-disable-next-line no-console
       console.error("Error checking admin token:", err);
       setIsLoggedIn(false);
       setLoading(false);
-      try {
-        router.push("/admin/login");
-      } catch (e) {
-        // ignore
-      }
+      try { router.push("/admin/login"); } catch (e) { /* ignore */ }
     }
   }, [router, pathname]);
 
   const handleLogout = () => {
     try {
       sessionStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminUser");
     } catch (e) {
       // ignore
     }
@@ -157,7 +200,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-1 sm:space-y-2">
-            {navItems.map((item) => {
+            <div className="pb-1">
+              <p className="px-3 text-[10px] font-bold text-blue-200 uppercase tracking-wider">Konten</p>
+            </div>
+            {contentNavItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
               return (
@@ -174,6 +220,30 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </a>
               );
             })}
+            {isAdmin && (
+              <>
+                <div className="pt-3 pb-1">
+                  <p className="px-3 text-[10px] font-bold text-blue-200 uppercase tracking-wider">Administrasi</p>
+                </div>
+                {adminNavItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap sm:whitespace-normal ${isActive
+                        ? "bg-white/20 text-white"
+                        : "text-blue-100 hover:bg-white/10"
+                        }`}
+                    >
+                      <Icon size={18} className="flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium">{item.label}</span>
+                    </a>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
           {/* Logout */}
@@ -254,11 +324,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-900">Administrator</p>
-              <p className="text-xs text-gray-500">Admin Access</p>
+              <p className="text-sm font-semibold text-gray-900">{user?.nama || user?.username || "Administrator"}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role === "super_admin" ? "Super Admin" : user?.role || "Admin Access"}</p>
             </div>
             <div className="w-10 h-10 bg-[#003399] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              A
+              {userInitial}
             </div>
           </div>
         </header>

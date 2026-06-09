@@ -32,7 +32,7 @@ export default function Footer() {
             {/* Brand */}
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
                   <img src="bmkg-logo.png" alt="B" className="w-full h-full object-contain p-1" />
                 </div>
                 <div>
