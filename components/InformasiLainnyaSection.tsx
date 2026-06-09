@@ -1,12 +1,12 @@
 "use client";
 
-import { 
-  CloudSun, 
-  Compass, 
-  Globe, 
-  Activity, 
-  Waves, 
-  Plane, 
+import {
+  CloudSun,
+  Compass,
+  Globe,
+  Activity,
+  Waves,
+  Plane,
   ChevronRight,
   ExternalLink
 } from "lucide-react";
@@ -76,7 +76,7 @@ export default function InformasiLainnyaSection() {
             Portal & Aplikasi Eksternal
           </span>
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-none">
-            Informasi Lainnya
+            Informasi Cuaca & Geofisika
           </h2>
           <p className="text-slate-500 mt-3.5 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
             Akses cepat ke berbagai sistem monitoring cuaca, iklim, maritim, aviasi, dan kebencanaan BMKG Pusat.
@@ -95,7 +95,7 @@ export default function InformasiLainnyaSection() {
             >
               {/* Corner decorative light color drop */}
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-50/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              
+
               <div>
                 {/* Icon Circle wrapper */}
                 <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center mb-5 ${item.bg} group-hover:scale-105 transition-transform duration-300`}>
