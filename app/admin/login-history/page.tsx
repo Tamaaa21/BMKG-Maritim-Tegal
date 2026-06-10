@@ -158,8 +158,6 @@ export default function LoginHistoryPage() {
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Waktu</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">User</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">IP Address</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider hidden md:table-cell">User Agent</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,20 +181,6 @@ export default function LoginHistoryPage() {
                       </td>
                       <td className="py-3 px-3">
                         <span className="font-semibold text-gray-900">{log.username}</span>
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <Globe size={14} className="text-gray-400" />
-                          <span className="text-gray-600 text-xs font-mono">{log.ip_address}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 hidden md:table-cell">
-                        <div className="flex items-center gap-2">
-                          <Monitor size={14} className="text-gray-400" />
-                          <span className="text-gray-500 text-xs truncate max-w-[250px] block" title={log.user_agent}>
-                            {log.user_agent}
-                          </span>
-                        </div>
                       </td>
                     </tr>
                   ))}

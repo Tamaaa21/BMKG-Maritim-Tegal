@@ -107,8 +107,9 @@ export default function PrakiraanDetailPage() {
   const showNextForecast = data.next_url && (!data.next_waktu_mulai || new Date(data.next_waktu_mulai) <= now);
   const CategoryIcon = data.category ? getIcon(data.category.icon) : null;
   const displayType = data.display_type || "gambar_saja";
-  const allImages = [data.url, ...(data.gallery_images || [])];
-  const showGallery = displayType === "gambar_galeri" && data.gallery_images && data.gallery_images.length > 0;
+  const uniqueGalleryImages = Array.from(new Set(data.gallery_images || [])).filter(img => img !== data.url);
+  const allImages = [data.url, ...uniqueGalleryImages];
+  const showGallery = displayType === "gambar_galeri" && uniqueGalleryImages.length > 0;
   const showText = displayType === "gambar_teks" || displayType === "gambar_galeri";
   const isImageOnly = displayType === "gambar_saja";
 
@@ -266,14 +267,14 @@ export default function PrakiraanDetailPage() {
                     )}
                   </div>
                   {/* Gallery grid for gambar_galeri */}
-                  {showGallery && data.gallery_images && data.gallery_images.length > 0 && (
+                  {showGallery && uniqueGalleryImages.length > 0 && (
                     <div className="mt-8">
                       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                         <Image size={18} />
                         Galeri Foto
                       </h2>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {data.gallery_images.map((img, idx) => (
+                        {uniqueGalleryImages.map((img, idx) => (
                           <button
                             key={idx}
                             onClick={() => setActiveImg(idx + 1)}
@@ -352,7 +353,7 @@ export default function PrakiraanDetailPage() {
                     </div>
 
                     {/* Gallery thumbnails below image */}
-                    {showGallery && data.gallery_images && data.gallery_images.length > 0 && (
+                    {showGallery && uniqueGalleryImages.length > 0 && (
                       <div className="flex gap-2 mt-3 overflow-x-auto">
                         <button
                           onClick={() => setActiveImg(0)}
@@ -361,7 +362,7 @@ export default function PrakiraanDetailPage() {
                         >
                           <img src={data.url} alt="Utama" className="w-full h-full object-cover" />
                         </button>
-                        {data.gallery_images.map((img, idx) => (
+                        {uniqueGalleryImages.map((img, idx) => (
                           <button
                             key={idx}
                             onClick={() => setActiveImg(idx + 1)}

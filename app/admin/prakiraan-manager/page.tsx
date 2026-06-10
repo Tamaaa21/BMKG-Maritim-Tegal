@@ -259,6 +259,7 @@ export default function PrakiraanManager() {
         if (editingEntry.next_waktu_mulai) form.append("next_waktu_mulai", dateToStartOfDayISO(editingEntry.next_waktu_mulai) || "");
         if (editingEntry.next_waktu_berakhir) form.append("next_waktu_berakhir", dateToEndOfDayISO(editingEntry.next_waktu_berakhir) || "");
 
+        const existingGallery = (editingEntry.gallery_images || []).filter(img => !img.startsWith("blob:"));
         if (editingEntry.galleryFiles && editingEntry.galleryFiles.length > 0) {
           const galleryUrls: string[] = [];
           for (const gf of editingEntry.galleryFiles) {
@@ -272,9 +273,9 @@ export default function PrakiraanManager() {
               galleryUrls.push(upJson.data.url);
             }
           }
-          form.append("gallery_images", JSON.stringify([...(editingEntry.gallery_images || []), ...galleryUrls]));
-        } else if (editingEntry.gallery_images && editingEntry.gallery_images.length > 0) {
-          form.append("gallery_images", JSON.stringify(editingEntry.gallery_images));
+          form.append("gallery_images", JSON.stringify([...existingGallery, ...galleryUrls]));
+        } else if (existingGallery.length > 0) {
+          form.append("gallery_images", JSON.stringify(existingGallery));
         }
 
         const res = await fetch("/api/admin/prakiraan-images", { method: "POST", body: form });
@@ -305,7 +306,7 @@ export default function PrakiraanManager() {
         if (editingEntry.file) finalUrl = await uploadTempImage(editingEntry.file);
         if (editingEntry.nextFile) finalNextUrl = await uploadTempImage(editingEntry.nextFile);
 
-        let finalGallery = [...(editingEntry.gallery_images || [])];
+        let finalGallery = (editingEntry.gallery_images || []).filter(img => !img.startsWith("blob:"));
         if (editingEntry.galleryFiles && editingEntry.galleryFiles.length > 0) {
           for (const gf of editingEntry.galleryFiles) {
             const url = await uploadTempImage(gf);
