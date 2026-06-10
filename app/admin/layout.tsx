@@ -102,8 +102,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     };
 
     subscribeTo("buku_tamu", "Data Buku Tamu baru masuk");
-    subscribeTo("layanan_berbayar", "Layanan Berbayar baru masuk");
-    subscribeTo("layanan_nol_rupiah", "Layanan Nol Rupiah baru masuk");
+
     subscribeTo("kegiatan_documents", "Dokumentasi kegiatan baru masuk");
 
     return () => {

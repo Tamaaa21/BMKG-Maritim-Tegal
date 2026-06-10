@@ -25,22 +25,6 @@ export default function AdminDashboard() {
       href: "/admin/buku-tamu",
     },
     {
-      title: "Layanan Berbayar",
-      value: stats.layananBerbayar,
-      icon: FileText,
-      color: "bg-green-100",
-      textColor: "text-green-600",
-      href: "/admin/layanan?tab=berbayar",
-    },
-    {
-      title: "Layanan Nol Rupiah",
-      value: stats.layananNolRupiah,
-      icon: FileText,
-      color: "bg-purple-100",
-      textColor: "text-purple-600",
-      href: "/admin/layanan?tab=nol-rupiah",
-    },
-    {
       title: "Karyawan Aktif",
       value: userCount,
       icon: Users,
