@@ -12,9 +12,21 @@ function getIcon(name?: string) {
   return CATEGORY_ICONS[name || "Sun"] || Sun;
 }
 
-const ExpiredPopup = ({ title, onClose, isScheduled }: { title: string; onClose: () => void; isScheduled?: boolean }) => (
+const ExpiredPopup = ({
+  title,
+  onClose,
+  isScheduled,
+  isUnupdated,
+  onViewDetail
+}: {
+  title: string;
+  onClose: () => void;
+  isScheduled?: boolean;
+  isUnupdated?: boolean;
+  onViewDetail?: () => void;
+}) => (
   <div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
     onClick={onClose}
   >
     <div
@@ -22,26 +34,44 @@ const ExpiredPopup = ({ title, onClose, isScheduled }: { title: string; onClose:
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex justify-center">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isScheduled ? "bg-blue-100" : "bg-amber-100"}`}>
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
+          isScheduled ? "bg-blue-100" : "bg-amber-100"
+        }`}>
           <AlertCircle size={28} className={isScheduled ? "text-blue-500" : "text-amber-500"} />
         </div>
       </div>
       <div>
-        <h3 className="text-lg font-bold text-gray-900">{isScheduled ? "Belum Tersedia" : "Halaman Belum Diperbarui"}</h3>
-        <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+        <h3 className="text-lg font-bold text-gray-900">
+          {isScheduled ? "Belum Tersedia" : isUnupdated ? "Prakiraan Belum Diperbarui" : "Halaman Belum Diperbarui"}
+        </h3>
+        <p className="text-gray-500 text-sm mt-2 leading-relaxed font-normal">
           {isScheduled ? (
             <>Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> belum mulai tayang. Silakan kembali lagi pada jadwal yang telah ditentukan.</>
+          ) : isUnupdated ? (
+            <>Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> belum diperbarui ke versi terbaru. Anda tetap dapat melihat informasi sebelumnya.</>
           ) : (
             <>Informasi prakiraan <span className="font-semibold text-gray-700">"{title}"</span> sudah melewati masa tayang. Silakan kembali lagi nanti untuk informasi terbaru.</>
           )}
         </p>
       </div>
-      <button
-        onClick={onClose}
-        className="w-full px-4 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl transition-colors text-sm"
-      >
-        Mengerti
-      </button>
+      <div className="flex gap-2">
+        {isUnupdated && onViewDetail && (
+          <button
+            onClick={onViewDetail}
+            className="flex-1 px-4 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl transition-colors text-sm"
+          >
+            Lihat Detail
+          </button>
+        )}
+        <button
+          onClick={onClose}
+          className={`px-4 py-2.5 font-semibold rounded-xl transition-colors text-sm ${
+            isUnupdated ? "border border-gray-200 text-gray-600 flex-1 hover:bg-gray-50" : "w-full bg-[#003399] hover:bg-[#0044cc] text-white"
+          }`}
+        >
+          {isUnupdated ? "Batal" : "Mengerti"}
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -52,7 +82,7 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [expiredPopup, setExpiredPopup] = useState<{ title: string; isScheduled?: boolean } | null>(null);
+  const [expiredPopup, setExpiredPopup] = useState<{ title: string; isScheduled?: boolean; isUnupdated?: boolean; slug?: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -83,19 +113,39 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
   }, []);
 
   const now = new Date();
-  const isAvailable = (card: any) => {
+  const shouldShowCard = (card: any, allCards: any[]) => {
     const expired = card.waktu_berakhir && new Date(card.waktu_berakhir) < now;
-    const scheduled = !expired && card.waktu_mulai && new Date(card.waktu_mulai) > now;
-    return !expired && !scheduled;
+    const scheduled = card.waktu_mulai && new Date(card.waktu_mulai) > now;
+
+    if (scheduled) {
+      return false; // Hide scheduled cards until they start
+    }
+
+    if (expired) {
+      // Retain expired card only if there is NO newer active/scheduled card in the same category
+      const hasNewer = allCards.some((other) => {
+        if (other.id === card.id) return false;
+        if (other.category_id !== card.category_id) return false;
+
+        const otherExpired = other.waktu_berakhir && new Date(other.waktu_berakhir) < now;
+        return !otherExpired; // true if the other card is active or scheduled
+      });
+      return !hasNewer;
+    }
+
+    return true; // Active card
   };
 
   const visibleCards = cards.filter((card) => {
-    if (!activeCategory) return isAvailable(card);
-    return card.category_id === activeCategory && isAvailable(card);
+    if (!activeCategory) return shouldShowCard(card, cards);
+    return card.category_id === activeCategory && shouldShowCard(card, cards);
   });
 
   const handleCardClick = (card: any) => {
-    if (card.slug) {
+    const expired = card.waktu_berakhir && new Date(card.waktu_berakhir) < now;
+    if (expired) {
+      setExpiredPopup({ title: card.title, isUnupdated: true, slug: card.slug });
+    } else if (card.slug) {
       router.push(`/prakiraan/${card.slug}`);
     } else {
       setExpiredPopup({ title: card.title });
@@ -159,7 +209,7 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
                 <button
                   key={card.id || i}
                   onClick={() => handleCardClick(card)}
-                  className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-[#003399] transition-all duration-300 group flex flex-col text-left h-full relative"
+                  className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-[#003399] transition-all duration-300 group flex flex-col text-left h-full relative"
                 >
                   <div className="relative h-44 w-full overflow-hidden flex-shrink-0">
                     <img
@@ -220,6 +270,13 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
         <ExpiredPopup
           title={expiredPopup.title}
           isScheduled={expiredPopup.isScheduled}
+          isUnupdated={expiredPopup.isUnupdated}
+          onViewDetail={() => {
+            if (expiredPopup.slug) {
+              router.push(`/prakiraan/${expiredPopup.slug}`);
+              setExpiredPopup(null);
+            }
+          }}
           onClose={() => setExpiredPopup(null)}
         />
       )}

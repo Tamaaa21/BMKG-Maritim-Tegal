@@ -82,6 +82,7 @@ export async function POST(req: Request) {
       if (galleryImages) insertObj.gallery_images = galleryImages;
       if (body.slug) insertObj.slug = body.slug;
       if (body.category_id) insertObj.category_id = body.category_id;
+      if (body.prioritas !== undefined) insertObj.prioritas = parseInt(body.prioritas.toString(), 10);
 
       const { data: insertData, error: insertError } = await supabase.from('prakiraan_images').insert(insertObj).select().single();
       if (insertError) throw insertError;
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
     const nextWaktuBerakhir = (form.get('next_waktu_berakhir') as any)?.toString() || null;
     const displayType = (form.get('display_type') as any)?.toString() || null;
     const galleryImagesRaw = (form.get('gallery_images') as any)?.toString() || null;
+    const prioritasRaw = (form.get('prioritas') as any)?.toString() || null;
 
     if (!file) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
@@ -130,6 +132,9 @@ export async function POST(req: Request) {
     if (displayType && VALID_DISPLAY_TYPES.includes(displayType)) insertObj.display_type = displayType;
     if (galleryImagesRaw) {
       try { insertObj.gallery_images = JSON.parse(galleryImagesRaw); } catch {}
+    }
+    if (prioritasRaw) {
+      insertObj.prioritas = parseInt(prioritasRaw, 10);
     }
 
     const { data: insertData, error: insertError } = await supabase.from('prakiraan_images').insert(insertObj).select().single();

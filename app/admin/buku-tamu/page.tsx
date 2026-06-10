@@ -121,26 +121,32 @@ export default function BukuTamuPage() {
       },
       columnStyles: {
         0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 45 },
-        3: { cellWidth: 28 },
-        4: { cellWidth: 35 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 30 },
         5: { cellWidth: "auto" },
-        6: { cellWidth: 30, halign: "center" },
-        7: { cellWidth: 22, halign: "center" },
+        6: { cellWidth: 25, halign: "center" },
+        7: { cellWidth: 80, halign: "center" },
       },
       margin: { top: margin + 14, right: margin, bottom: margin, left: margin },
+      didParseCell: (data) => {
+        if (data.column.index === 7 && fotoDataMap[data.row.index]) {
+          const fotoW = data.cell.width - 4;
+          data.cell.height = fotoW + 4;
+        }
+      },
       didDrawCell: (data) => {
         if (data.column.index === 7) {
           const foto = fotoDataMap[data.row.index];
           if (!foto) return;
           const imgData = foto.startsWith("data:") ? foto : `data:image/jpeg;base64,${foto}`;
           try {
-            const size = Math.min(data.cell.width, data.cell.height) - 4;
-            if (size <= 2) return;
-            const x = data.cell.x + (data.cell.width - size) / 2;
-            const y = data.cell.y + (data.cell.height - size) / 2;
-            doc.addImage(imgData, "JPEG", x, y, size, size);
+            const s = data.cell.width - 4;
+            if (s <= 2) return;
+            const x = data.cell.x + (data.cell.width - s) / 2;
+            const y = data.cell.y + (data.cell.height - s) / 2;
+            doc.addImage(imgData, "JPEG", x, y, s, s);
           } catch (e) {}
         }
       },
