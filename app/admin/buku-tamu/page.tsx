@@ -144,8 +144,7 @@ export default function BukuTamuPage() {
           if (!foto) return;
           const imgData = foto.startsWith("data:") ? foto : `data:image/jpeg;base64,${foto}`;
           try {
-<<<<<<< HEAD
-            const padding = 1.5;
+            const padding = 2;
             const size = Math.min(data.cell.width, data.cell.height) - padding * 2;
             if (size <= 2) return;
             const x = data.cell.x + (data.cell.width - size) / 2;
@@ -154,14 +153,6 @@ export default function BukuTamuPage() {
           } catch (e) {
             console.error("Gagal menambahkan foto ke PDF:", e);
           }
-=======
-            const s = data.cell.width - 4;
-            if (s <= 2) return;
-            const x = data.cell.x + (data.cell.width - s) / 2;
-            const y = data.cell.y + (data.cell.height - s) / 2;
-            doc.addImage(imgData, "JPEG", x, y, s, s);
-          } catch (e) {}
->>>>>>> e83b4e4188d62b4c592ac1ec26602ef952903877
         }
       },
       didDrawPage: () => {
