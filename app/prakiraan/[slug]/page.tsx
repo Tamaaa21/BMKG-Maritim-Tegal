@@ -118,13 +118,13 @@ export default function PrakiraanDetailPage() {
       <Navbar />
       <div className="pt-20 pb-16">
         <div className="max-w-[1650px] mx-auto px-4 md:px-8 lg:px-12">
-          <button
+          {/* <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-[#003399] hover:text-[#0044cc] font-semibold text-sm mb-6 mt-4 group transition-colors"
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             Kembali ke Prakiraan
-          </button>
+          </button> */}
 
           {/* ─── GAMBAR SAJA MODE ───────────────────────────── */}
           {isImageOnly && (
@@ -238,18 +238,18 @@ export default function PrakiraanDetailPage() {
 
                   {/* Meta info bar */}
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm mb-6">
-                    {data.uploader && (
+                    {/* {data.uploader && (
                       <span className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
                         <User size={14} className="text-gray-400" />
                         {data.uploader}
                       </span>
-                    )}
-                    {data.created_at && (
+                    )} */}
+                    {/* {data.created_at && (
                       <span className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
                         <Calendar size={14} className="text-gray-400" />
                         {new Date(data.created_at).toLocaleDateString("id-ID", { dateStyle: "long" })}
                       </span>
-                    )}
+                    )} */}
                     {data.waktu_mulai && (
                       <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isScheduled ? "bg-blue-50 text-blue-600" : "bg-gray-50 text-gray-500"
                         }`}>

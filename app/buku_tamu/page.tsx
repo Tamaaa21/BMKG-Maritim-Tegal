@@ -148,7 +148,7 @@ export default function BukuTamuPage() {
       <Navbar minimal />
 
       <div className="flex-1 flex items-center justify-center pt-28 pb-16 px-4 md:px-8">
-        <div className="max-w-6xl w-full">
+        <div className="max-w-8xl w-full max-h-[1000px]">
           {/* Header */}
           <div className="text-center mb-8">
             <span className="text-[#003399] text-xs md:text-sm font-semibold uppercase tracking-widest">Buku Tamu Digital</span>
