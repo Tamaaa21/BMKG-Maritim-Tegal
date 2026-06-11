@@ -40,7 +40,7 @@ function getUserRole(): string {
   try {
     const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
     if (stored) return JSON.parse(stored).role || "";
-  } catch {}
+  } catch { }
   return "";
 }
 
@@ -139,7 +139,7 @@ export default function PrakiraanManager() {
       const res = await fetch("/api/admin/prakiraan-categories");
       const b = await res.json();
       if (b?.success) setCategories(b.data || []);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -182,7 +182,7 @@ export default function PrakiraanManager() {
       const json = await res.json();
       if (json?.success) fetchCategories();
       else alert("Gagal");
-    } catch {}
+    } catch { }
   };
 
   // ─── PRAKIRAAN CRUD ─────────────────────────────────────
@@ -239,7 +239,7 @@ export default function PrakiraanManager() {
       try {
         const token = typeof window !== "undefined" ? sessionStorage.getItem("adminToken") : null;
         if (token) username = atob(token).split(":")[0] || "admin";
-      } catch {}
+      } catch { }
 
       const finalSlug = editingEntry.slug || slugify(editingEntry.title);
 
@@ -399,7 +399,7 @@ export default function PrakiraanManager() {
     <div className="space-y-6 max-w-full">
 
       {/* Auto-Switch Bar */}
-      <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
             <RefreshCw size={14} />
@@ -424,7 +424,7 @@ export default function PrakiraanManager() {
           <RefreshCw size={12} />
           Jalankan Auto-Switch
         </button>
-      </div>
+      </div> */}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -860,7 +860,9 @@ export default function PrakiraanManager() {
                       <div className="flex gap-1">
                         <button onClick={() => { setCatForm({ id: cat.id, name: cat.name, description: cat.description || "", icon: cat.icon }); setShowCatForm(true); }}
                           className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><Edit3 size={14} /></button>
-                        <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 size={14} /></button>
+                        {isAdmin() && (
+                          <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 size={14} /></button>
+                        )}
                       </div>
                     </div>
                   ))}

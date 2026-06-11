@@ -38,9 +38,19 @@ export default function PengaturanPage() {
 
     setLoading(true);
     try {
+      // Get current username from session
+      let username = "";
+      try {
+        const stored = sessionStorage.getItem("adminUser");
+        if (stored) username = JSON.parse(stored).username || "";
+      } catch {}
+
       const res = await fetch("/api/admin/change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-username": username,
+        },
         body: JSON.stringify({ oldPassword, newPassword }),
       });
       const data = await res.json();

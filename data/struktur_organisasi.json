@@ -3,40 +3,40 @@
     "id": "1",
     "jabatan": "Kepala Stasiun",
     "nama": "Drs. Nama Kepala",
-    "inisial": "K",
+    "inisial": "https://unfpyjpxcnbiurgffett.supabase.co/storage/v1/object/public/public/uploads/1781144517855_dkapzq_logo-ml.png",
     "deskripsi": "Pimpinan UPT",
     "urutan": 1
   },
   {
     "id": "2",
     "jabatan": "Seksi Observasi",
-    "nama": "Kepala Seksi Observasi",
+    "nama": "",
     "inisial": "O",
     "deskripsi": "Melakukan pengamatan, perekaman data cuaca maritim & instrumen meteorologi",
     "urutan": 2
   },
   {
     "id": "4",
-    "jabatan": "Seksi Pelayanan",
-    "nama": "Kepala Seksi Pelayanan",
-    "inisial": "P",
+    "jabatan": "Struktual",
+    "nama": "",
+    "inisial": "S",
     "deskripsi": "Pelayanan jasa meteorologi, edukasi publik, dan hubungan kemitraan maritim",
     "urutan": 4
   },
   {
-    "id": "3",
-    "jabatan": "Seksi Data & Informasi",
-    "nama": "Kepala Seksi Data",
-    "inisial": "D",
-    "deskripsi": "Mengolah database, analisis klimatologi, dan penyebaran informasi cuaca",
-    "urutan": 8
+    "id": "1781062285478",
+    "jabatan": " Forecaster",
+    "nama": "",
+    "inisial": "F",
+    "deskripsi": "Melakukan analisis dan prakiraan kondisi cuaca, iklim, serta gelombang laut berdasarkan data pengamatan dan model numerik. ",
+    "urutan": 5
   },
   {
-    "id": "1781062285478",
-    "jabatan": "tes",
-    "nama": "tes",
-    "inisial": "q",
-    "deskripsi": "",
-    "urutan": 9
+    "id": "3",
+    "jabatan": "Seksi Data & Informasi",
+    "nama": "",
+    "inisial": "D",
+    "deskripsi": "Mengolah database, analisis klimatologi, dan penyebaran informasi cuaca",
+    "urutan": 6
   }
 ]

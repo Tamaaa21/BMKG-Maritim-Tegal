@@ -151,9 +151,9 @@ export default function LayananSection({ limit }: { limit?: number }) {
 
         {/* Service Cards Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="flex flex-wrap justify-center gap-6 mb-12">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-gray-50 border border-gray-100 rounded-3xl p-6 h-64 animate-pulse flex flex-col justify-between">
+              <div key={i} className="bg-gray-50 border border-gray-100 rounded-3xl p-6 h-64 animate-pulse flex flex-col justify-between w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]">
                 <div>
                   <div className="w-12 h-12 bg-gray-200 rounded-2xl" />
                   <div className="h-5 bg-gray-200 rounded w-2/3 mt-4" />
@@ -173,7 +173,7 @@ export default function LayananSection({ limit }: { limit?: number }) {
             <p className="text-gray-400 text-sm mt-1">Admin dapat menambahkan layanan di Panel Admin.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 items-stretch">
+          <div className="flex flex-wrap justify-center gap-6 mb-12 items-stretch">
             {(limit ? services.slice(0, limit) : services).map((svc) => {
               const { Icon, bg, iconColor, accent, badgeText, coverImage } = getServiceConfig(svc.nama_layanan);
 
@@ -183,7 +183,7 @@ export default function LayananSection({ limit }: { limit?: number }) {
                 <button
                   key={svc.id}
                   onClick={() => handleCardClick(svc.url_google_form)}
-                  className={`group bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col text-left h-full ${accent}`}
+                  className={`group bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col text-left h-full w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] ${accent}`}
                 >
                   {/* Top: Cover Image with Overlays */}
                   <div className="relative w-full h-36 overflow-hidden shrink-0">

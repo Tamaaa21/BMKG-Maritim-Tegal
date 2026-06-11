@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, FileText, ImageIcon, Users, LogIn, ArrowRight, ShieldCheck, Compass, HelpCircle } from "lucide-react";
+import { MessageSquare, FileText, ImageIcon, Users, LogIn, ArrowRight, ShieldCheck, Compass, CheckCircle2, Calendar, HelpCircle } from "lucide-react";
 import { useAdminRealtime } from "@/components/AdminRealtimeProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -8,11 +8,17 @@ import Link from "next/link";
 export default function AdminDashboard() {
   const { stats } = useAdminRealtime();
   const [userCount, setUserCount] = useState(0);
+  const [prakiraanStats, setPrakiraanStats] = useState({ active: 0, inactive: 0 });
 
   useEffect(() => {
     fetch("/api/admin/stats/users")
       .then(r => r.json())
       .then(d => { if (typeof d.count === "number") setUserCount(d.count); })
+      .catch(() => {});
+
+    fetch("/api/admin/stats/prakiraan")
+      .then(r => r.json())
+      .then(d => { if (d.success) setPrakiraanStats({ active: d.active, inactive: d.inactive }); })
       .catch(() => {});
   }, []);
 
@@ -26,20 +32,20 @@ export default function AdminDashboard() {
       desc: "Total tamu berkunjung",
     },
     {
-      title: "Layanan Berbayar",
-      value: stats.layananBerbayar,
-      icon: FileText,
+      title: "Prakiraan Aktif",
+      value: prakiraanStats.active,
+      icon: CheckCircle2,
       color: "bg-emerald-50/80 border-emerald-100/60 text-emerald-600",
-      href: "/admin/layanan?tab=berbayar",
-      desc: "Permintaan layanan berbayar",
+      href: "/admin/prakiraan-manager",
+      desc: "Sedang tayang di publik",
     },
     {
-      title: "Layanan Nol Rupiah",
-      value: stats.layananNolRupiah,
-      icon: FileText,
-      color: "bg-violet-50/80 border-violet-100/60 text-violet-600",
-      href: "/admin/layanan?tab=nol-rupiah",
-      desc: "Permintaan layanan Rp 0",
+      title: "Prakiraan Tidak Aktif",
+      value: prakiraanStats.inactive,
+      icon: Calendar,
+      color: "bg-rose-50/80 border-rose-100/60 text-rose-500",
+      href: "/admin/prakiraan-manager",
+      desc: "Sudah kedaluwarsa",
     },
     {
       title: "Karyawan Aktif",
