@@ -39,7 +39,7 @@ export default function BuletinSection() {
               <img
                 src={buletin.cover_url || buletin.url}
                 alt={buletin.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.1)] pointer-events-none" />
             </div>

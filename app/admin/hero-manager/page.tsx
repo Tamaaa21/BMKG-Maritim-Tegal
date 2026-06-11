@@ -155,7 +155,10 @@ export default function HeroManager() {
         <button className="px-6 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
           Batal
         </button>
-        <button className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors">
+        <button 
+          onClick={() => alert("Perubahan slider berhasil disimpan!")}
+          className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors"
+        >
           Simpan Perubahan
         </button>
       </div>

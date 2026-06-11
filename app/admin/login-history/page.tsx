@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LogIn, Monitor, Globe, Clock, Search } from "lucide-react";
+import { LogIn, Clock, Search, ChevronLeft, ChevronRight, Download, Monitor, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface LoginLog {
@@ -13,10 +13,14 @@ interface LoginLog {
   created_at: string;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function LoginHistoryPage() {
   const [logs, setLogs] = useState<LoginLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [restoring, setRestoring] = useState(false);
 
   const fetchLogs = async () => {
     try {
@@ -38,17 +42,91 @@ export default function LoginHistoryPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleBackup = async () => {
+    try {
+      const res = await fetch("/api/admin/login-logs/backup");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `login_logs_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("Gagal melakukan backup");
+    }
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!confirm(`Restore data dari file ${file.name}? Data akan ditambahkan ke database.`)) return;
+
+    setRestoring(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const res = await fetch("/api/admin/login-logs/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (json?.success) {
+        alert(json.message || "Restore berhasil");
+        fetchLogs();
+      } else {
+        alert(json?.message || "Restore gagal");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("File backup tidak valid");
+    } finally {
+      setRestoring(false);
+    }
+    e.target.value = "";
+  };
+
   const filtered = logs.filter(log =>
     log.username.toLowerCase().includes(search.toLowerCase()) ||
     (log.ip_address || "").includes(search) ||
     (log.user_agent || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">History Login</h1>
         <p className="text-gray-500 mt-2">Pantau aktivitas masuk pengguna ke panel administrasi.</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari username, IP, User Agent..." className="pl-12 text-sm" />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleBackup}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+          >
+            <Download size={18} /> Backup
+          </button>
+          <label className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm cursor-pointer ${restoring ? "bg-gray-400" : "bg-amber-600 hover:bg-amber-700"} text-white`}>
+            <UploadIcon size={18} /> {restoring ? "Memulihkan..." : "Restore"}
+            <input type="file" accept=".json" onChange={handleRestore} className="hidden" disabled={restoring} />
+          </label>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -60,15 +138,6 @@ export default function LoginHistoryPage() {
               <span className="text-sm font-normal text-gray-400">({filtered.length} catatan)</span>
             )}
           </h2>
-          <div className="relative w-full sm:w-64">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari username/IP..."
-              className="pl-9"
-            />
-          </div>
         </div>
 
         {loading ? (
@@ -81,54 +150,112 @@ export default function LoginHistoryPage() {
             <p className="text-gray-500 text-sm">Belum ada riwayat login.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-3 px-3 font-semibold text-gray-500">Waktu</th>
-                  <th className="text-left py-3 px-3 font-semibold text-gray-500">User</th>
-                  <th className="text-left py-3 px-3 font-semibold text-gray-500">IP Address</th>
-                  <th className="text-left py-3 px-3 font-semibold text-gray-500 hidden md:table-cell">User Agent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((log) => (
-                  <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-gray-400" />
-                        <span className="text-gray-900 font-medium text-xs">
-                          {new Date(log.created_at).toLocaleDateString("id-ID", {
-                            day: "2-digit", month: "short", year: "numeric",
-                            hour: "2-digit", minute: "2-digit"
-                          })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span className="font-semibold text-gray-900">{log.username}</span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <Globe size={14} className="text-gray-400" />
-                        <span className="text-gray-600 text-xs font-mono">{log.ip_address}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        <Monitor size={14} className="text-gray-400" />
-                        <span className="text-gray-500 text-xs truncate max-w-[250px] block" title={log.user_agent}>
-                          {log.user_agent}
-                        </span>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/60">
+                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Waktu</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">User</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginated.map((log, index) => (
+                    <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <td className="py-3 px-3 w-10">
+                        <span className="text-gray-400 text-xs font-mono">
+                          {(safePage - 1) * ITEMS_PER_PAGE + index + 1}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <Clock size={14} className="text-gray-400 shrink-0" />
+                          <span className="text-gray-900 font-medium text-xs whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleDateString("id-ID", {
+                              day: "2-digit", month: "short", year: "numeric",
+                              hour: "2-digit", minute: "2-digit"
+                            })}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-gray-900">{log.username}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                  Halaman <span className="font-bold text-gray-900">{safePage}</span> dari{" "}
+                  <span className="font-bold text-gray-900">{totalPages}</span>{" "}
+                  &bull; {filtered.length} total catatan
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+
+                  {/* Sliding window pagination */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => {
+                      if (totalPages <= 7) return true;
+                      if (p === 1 || p === totalPages) return true;
+                      if (Math.abs(p - safePage) <= 2) return true;
+                      return false;
+                    })
+                    .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                      if (i > 0 && typeof arr[i - 1] === "number" && (p as number) - (arr[i - 1] as number) > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${i}`} className="px-2 py-1.5 text-xs text-gray-400 font-medium">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setCurrentPage(p as number)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            p === safePage
+                              ? "bg-[#003399] text-white shadow-sm"
+                              : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
+  );
+}
+
+function UploadIcon(props: any) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
   );
 }

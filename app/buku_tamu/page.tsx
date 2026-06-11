@@ -50,7 +50,7 @@ export default function BukuTamuPage() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
+
         const onLoadedMetadata = () => {
           if (videoRef.current) {
             videoRef.current.play().catch(err => {
@@ -148,7 +148,7 @@ export default function BukuTamuPage() {
       <Navbar minimal />
 
       <div className="flex-1 flex items-center justify-center pt-28 pb-16 px-4 md:px-8">
-        <div className="max-w-2xl w-full">
+        <div className="max-w-6xl w-full">
           {/* Header */}
           <div className="text-center mb-8">
             <span className="text-[#003399] text-xs md:text-sm font-semibold uppercase tracking-widest">Buku Tamu Digital</span>
@@ -157,170 +157,174 @@ export default function BukuTamuPage() {
           </div>
 
           {/* Form Card */}
-          <div className="bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-[#003399] to-[#0055cc] text-white px-6 py-5">
-              <h2 className="text-lg font-bold">Formulir Buku Tamu</h2>
-              <p className="text-blue-100 text-xs mt-1">Data Anda tersimpan dengan aman di sistem kami.</p>
-            </div>
+          <div className="w-full bg-white border border-gray-100 rounded-3xl shadow-xl overflow-hidden">            <div className="bg-gradient-to-r from-[#003399] to-[#0055cc] text-white px-6 py-5">
+            <h2 className="text-lg font-bold">Formulir Buku Tamu</h2>
+            <p className="text-blue-100 text-xs mt-1">Data Anda tersimpan dengan aman di sistem kami.</p>
+          </div>
 
             {!submitted ? (
-              <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8 space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Nama */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      {...register("nama", { required: "Nama lengkap wajib diisi" })}
-                      placeholder="Masukkan nama lengkap Anda"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
-                    />
-                    {errors.nama && <p className="text-red-500 text-xs mt-1">{errors.nama.message}</p>}
-                  </div>
+              <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Kolom Kiri: Input Form */}
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Nama */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          {...register("nama", { required: "Nama lengkap wajib diisi" })}
+                          placeholder="Masukkan nama lengkap Anda"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
+                        />
+                        {errors.nama && <p className="text-red-500 text-xs mt-1">{errors.nama.message}</p>}
+                      </div>
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
-                    <input
-                      type="email"
-                      {...register("email", { 
-                        required: "Email wajib diisi", 
-                        pattern: { 
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, 
-                          message: "Format email tidak valid" 
-                        } 
-                      })}
-                      placeholder="nama@email.com"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
-                    />
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
-                  </div>
+                      {/* Email */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                        <input
+                          type="email"
+                          {...register("email", {
+                            required: "Email wajib diisi",
+                            pattern: {
+                              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                              message: "Format email tidak valid"
+                            }
+                          })}
+                          placeholder="nama@email.com"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
+                        />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+                      </div>
 
-                  {/* No. Telepon */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">No. Telepon/WhatsApp <span className="text-red-500">*</span></label>
-                    <input
-                      type="tel"
-                      {...register("noTelepon", { required: "Nomor telepon wajib diisi" })}
-                      placeholder="Contoh: 081234567890"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
-                    />
-                    {errors.noTelepon && <p className="text-red-500 text-xs mt-1">{errors.noTelepon.message}</p>}
-                  </div>
+                      {/* No. Telepon */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">No. Telepon/WhatsApp <span className="text-red-500">*</span></label>
+                        <input
+                          type="tel"
+                          {...register("noTelepon", { required: "Nomor telepon wajib diisi" })}
+                          placeholder="Contoh: 081234567890"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
+                        />
+                        {errors.noTelepon && <p className="text-red-500 text-xs mt-1">{errors.noTelepon.message}</p>}
+                      </div>
 
-                  {/* Instansi */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Instansi / Organisasi / Sekolah</label>
-                    <input
-                      type="text"
-                      {...register("instansi")}
-                      placeholder="Nama instansi (opsional)"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Keperluan */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Keperluan Kunjungan <span className="text-red-500">*</span></label>
-                  <textarea
-                    {...register("keperluan", { required: "Jelaskan tujuan atau keperluan kunjungan Anda" })}
-                    placeholder="Contoh: Koordinasi data maritim, kunjungan sekolah, studi banding, dll."
-                    rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm resize-none transition-all"
-                  />
-                  {errors.keperluan && <p className="text-red-500 text-xs mt-1">{errors.keperluan.message}</p>}
-                </div>
-
-                {/* Kamera / Capture Foto */}
-                <div className="border-t border-gray-100 pt-5">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Foto Kunjungan / Identitas <span className="text-red-500">*</span></label>
-                  
-                  {showCamera ? (
-                    <div className="space-y-4">
-                      <div className="relative w-full bg-black rounded-2xl overflow-hidden aspect-video border border-gray-800 max-w-md mx-auto">
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          disablePictureInPicture
-                          className="absolute inset-0 w-full h-full bg-black object-cover"
-                          style={{ transform: "scaleX(-1)" }}
+                      {/* Instansi */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Instansi / Organisasi / Sekolah</label>
+                        <input
+                          type="text"
+                          {...register("instansi")}
+                          placeholder="Nama instansi (opsional)"
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm transition-all"
                         />
                       </div>
-                      {cameraError && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl max-w-md mx-auto">
-                          <p className="text-xs text-red-600 text-center">{cameraError}</p>
+                    </div>
+
+                    {/* Keperluan */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Keperluan Kunjungan <span className="text-red-500">*</span></label>
+                      <textarea
+                        {...register("keperluan", { required: "Jelaskan tujuan atau keperluan kunjungan Anda" })}
+                        placeholder="Contoh: Koordinasi data maritim, kunjungan sekolah, studi banding, dll."
+                        rows={4}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#003399]/20 focus:border-[#003399] text-sm resize-none transition-all"
+                      />
+                      {errors.keperluan && <p className="text-red-500 text-xs mt-1">{errors.keperluan.message}</p>}
+                    </div>
+                  </div>
+
+                  {/* Kolom Kanan: Kamera / Capture Foto */}
+                  <div className="pt-0 lg:pl-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">Foto Kunjungan / Identitas <span className="text-red-500">*</span></label>
+
+                    {showCamera ? (
+                      <div className="space-y-4">
+                        <div className="relative w-full bg-black rounded-2xl overflow-hidden aspect-video border border-gray-800 max-w-md mx-auto">
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            disablePictureInPicture
+                            className="absolute inset-0 w-full h-full bg-black object-cover"
+                            style={{ transform: "scaleX(-1)" }}
+                          />
                         </div>
-                      )}
-                      <div className="flex gap-3 max-w-md mx-auto">
-                        <button
-                          type="button"
-                          onClick={captureFoto}
-                          className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-md"
-                        >
-                          <Camera size={16} />
-                          Ambil Foto
-                        </button>
-                        <button
-                          type="button"
-                          onClick={stopCamera}
-                          className="flex-1 px-5 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    </div>
-                  ) : fotoData ? (
-                    <div className="space-y-4">
-                      <div className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-video border border-gray-200 max-w-md mx-auto">
-                        <img
-                          src={fotoData}
-                          alt="Foto kunjungan"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex gap-3 max-w-md mx-auto">
-                        <button
-                          type="button"
-                          onClick={retakeFoto}
-                          className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-md"
-                        >
-                          <Camera size={16} />
-                          Foto Ulang
-                        </button>
-                        <button
-                          type="button"
-                          onClick={removeFoto}
-                          className="flex-1 px-5 py-2.5 border border-red-200 text-red-600 font-semibold rounded-xl hover:bg-red-50 transition-colors text-sm flex items-center justify-center gap-2"
-                        >
-                          <Trash2 size={16} />
-                          Hapus Foto
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="max-w-md mx-auto">
-                      <button
-                        type="button"
-                        onClick={startCamera}
-                        className="w-full px-5 py-6 border-2 border-dashed border-[#003399]/40 bg-blue-50/50 hover:bg-blue-50 hover:border-[#003399] text-[#003399] font-bold rounded-2xl transition-all text-sm flex flex-col items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <div className="w-10 h-10 bg-[#003399]/10 rounded-full flex items-center justify-center mb-1">
-                          <Camera size={20} />
+                        {cameraError && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-xl max-w-md mx-auto">
+                            <p className="text-xs text-red-600 text-center">{cameraError}</p>
+                          </div>
+                        )}
+                        <div className="flex gap-3 max-w-md mx-auto">
+                          <button
+                            type="button"
+                            onClick={captureFoto}
+                            className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-md"
+                          >
+                            <Camera size={16} />
+                            Ambil Foto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={stopCamera}
+                            className="flex-1 px-5 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            Batal
+                          </button>
                         </div>
-                        Buka Kamera & Ambil Foto
-                      </button>
-                      <p className="text-gray-400 text-[10px] text-center mt-2">
-                        * Izin kamera diperlukan untuk validasi foto tamu.
-                      </p>
-                    </div>
-                  )}
+                      </div>
+                    ) : fotoData ? (
+                      <div className="space-y-4">
+                        <div className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-video border border-gray-200 max-w-md mx-auto">
+                          <img
+                            src={fotoData}
+                            alt="Foto kunjungan"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex gap-3 max-w-md mx-auto">
+                          <button
+                            type="button"
+                            onClick={retakeFoto}
+                            className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2 shadow-md"
+                          >
+                            <Camera size={16} />
+                            Foto Ulang
+                          </button>
+                          <button
+                            type="button"
+                            onClick={removeFoto}
+                            className="flex-1 px-5 py-2.5 border border-red-200 text-red-600 font-semibold rounded-xl hover:bg-red-50 transition-colors text-sm flex items-center justify-center gap-2"
+                          >
+                            <Trash2 size={16} />
+                            Hapus Foto
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="max-w-md mx-auto">
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="w-full px-5 py-6 border-2 border-dashed border-[#003399]/40 bg-blue-50/50 hover:bg-blue-50 hover:border-[#003399] text-[#003399] font-bold rounded-2xl transition-all text-sm flex flex-col items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <div className="w-10 h-10 bg-[#003399]/10 rounded-full flex items-center justify-center mb-1">
+                            <Camera size={20} />
+                          </div>
+                          Buka Kamera & Ambil Foto
+                        </button>
+                        <p className="text-gray-400 text-[10px] text-center mt-2">
+                          * Izin kamera diperlukan untuk validasi foto tamu.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Submit button */}
-                <div className="pt-6 border-t border-gray-100">
+                <div className="pt-6 mt-6 border-t border-gray-100">
                   <button
                     type="submit"
                     disabled={loading || !fotoData}

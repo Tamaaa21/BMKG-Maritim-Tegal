@@ -107,8 +107,9 @@ export default function PrakiraanDetailPage() {
   const showNextForecast = data.next_url && (!data.next_waktu_mulai || new Date(data.next_waktu_mulai) <= now);
   const CategoryIcon = data.category ? getIcon(data.category.icon) : null;
   const displayType = data.display_type || "gambar_saja";
-  const allImages = [data.url, ...(data.gallery_images || [])];
-  const showGallery = displayType === "gambar_galeri" && data.gallery_images && data.gallery_images.length > 0;
+  const uniqueGalleryImages = Array.from(new Set(data.gallery_images || [])).filter(img => img !== data.url);
+  const allImages = [data.url, ...uniqueGalleryImages];
+  const showGallery = displayType === "gambar_galeri" && uniqueGalleryImages.length > 0;
   const showText = displayType === "gambar_teks" || displayType === "gambar_galeri";
   const isImageOnly = displayType === "gambar_saja";
 
@@ -116,7 +117,7 @@ export default function PrakiraanDetailPage() {
     <main className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="pt-20 pb-16">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
+        <div className="max-w-[1650px] mx-auto px-4 md:px-8 lg:px-12">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-[#003399] hover:text-[#0044cc] font-semibold text-sm mb-6 mt-4 group transition-colors"
@@ -185,7 +186,7 @@ export default function PrakiraanDetailPage() {
               {/* Two-column layout: Text Left, Image Right */}
               <div className="flex flex-col-reverse md:flex-row gap-0">
                 {/* LEFT: Explanation */}
-                <div className="flex-1 md:w-3/5 p-6 md:p-10">
+                <div className="flex-1 md:w-[58%] p-6 md:p-10 lg:p-12">
                   {/* Status info boxes */}
                   {isScheduled && (
                     <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
@@ -216,7 +217,7 @@ export default function PrakiraanDetailPage() {
                     </div>
                   )}
 
-                 
+
 
                   {/* Explanation */}
                   {showText && (
@@ -235,7 +236,7 @@ export default function PrakiraanDetailPage() {
                     </div>
                   )}
 
- {/* Meta info bar */}
+                  {/* Meta info bar */}
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm mb-6">
                     {data.uploader && (
                       <span className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
@@ -250,17 +251,15 @@ export default function PrakiraanDetailPage() {
                       </span>
                     )}
                     {data.waktu_mulai && (
-                      <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
-                        isScheduled ? "bg-blue-50 text-blue-600" : "bg-gray-50 text-gray-500"
-                      }`}>
+                      <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isScheduled ? "bg-blue-50 text-blue-600" : "bg-gray-50 text-gray-500"
+                        }`}>
                         <Calendar size={14} />
                         Mulai {new Date(data.waktu_mulai).toLocaleDateString("id-ID", { dateStyle: "long" })}
                       </span>
                     )}
                     {data.waktu_berakhir && (
-                      <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
-                        isExpired ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
-                      }`}>
+                      <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isExpired ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                        }`}>
                         <Calendar size={14} />
                         {isExpired ? "Berakhir" : "Berlaku hingga"}{" "}
                         {new Date(data.waktu_berakhir).toLocaleDateString("id-ID", { dateStyle: "long" })}
@@ -268,20 +267,19 @@ export default function PrakiraanDetailPage() {
                     )}
                   </div>
                   {/* Gallery grid for gambar_galeri */}
-                  {showGallery && data.gallery_images && data.gallery_images.length > 0 && (
+                  {showGallery && uniqueGalleryImages.length > 0 && (
                     <div className="mt-8">
                       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                         <Image size={18} />
                         Galeri Foto
                       </h2>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {data.gallery_images.map((img, idx) => (
+                        {uniqueGalleryImages.map((img, idx) => (
                           <button
                             key={idx}
                             onClick={() => setActiveImg(idx + 1)}
-                            className={`aspect-video rounded-xl overflow-hidden border-2 transition-all ${
-                              activeImg === idx + 1 ? "border-[#003399] ring-2 ring-[#003399]/30" : "border-gray-200 hover:border-gray-300"
-                            }`}
+                            className={`aspect-video rounded-xl overflow-hidden border-2 transition-all ${activeImg === idx + 1 ? "border-[#003399] ring-2 ring-[#003399]/30" : "border-gray-200 hover:border-gray-300"
+                              }`}
                           >
                             <img src={img} alt={`${data.title} ${idx + 2}`} className="w-full h-full object-cover" />
                           </button>
@@ -338,7 +336,7 @@ export default function PrakiraanDetailPage() {
                 </div>
 
                 {/* RIGHT: Image */}
-                <div className="md:w-2/5 bg-gray-50 border-l border-gray-100">
+                <div className="md:w-[42%] bg-gray-50 border-l border-gray-100">
                   <div className="sticky top-24 p-4 md:p-6">
                     <div className="relative w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100" style={{ minHeight: "400px" }}>
                       <img
@@ -355,23 +353,21 @@ export default function PrakiraanDetailPage() {
                     </div>
 
                     {/* Gallery thumbnails below image */}
-                    {showGallery && data.gallery_images && data.gallery_images.length > 0 && (
+                    {showGallery && uniqueGalleryImages.length > 0 && (
                       <div className="flex gap-2 mt-3 overflow-x-auto">
                         <button
                           onClick={() => setActiveImg(0)}
-                          className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
-                            activeImg === 0 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
-                          }`}
+                          className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImg === 0 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
+                            }`}
                         >
                           <img src={data.url} alt="Utama" className="w-full h-full object-cover" />
                         </button>
-                        {data.gallery_images.map((img, idx) => (
+                        {uniqueGalleryImages.map((img, idx) => (
                           <button
                             key={idx}
                             onClick={() => setActiveImg(idx + 1)}
-                            className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
-                              activeImg === idx + 1 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
-                            }`}
+                            className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImg === idx + 1 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
+                              }`}
                           >
                             <img src={img} alt={`${idx + 2}`} className="w-full h-full object-cover" />
                           </button>

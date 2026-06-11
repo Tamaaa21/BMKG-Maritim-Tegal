@@ -160,6 +160,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             router.push("/admin/dashboard");
           }
         }
+
+        if (pathname === "/admin/login") {
+          router.push("/admin/dashboard");
+        }
       }
     } catch (err) {
       console.error("Error checking admin token:", err);
