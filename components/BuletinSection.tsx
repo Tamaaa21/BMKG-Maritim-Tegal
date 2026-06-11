@@ -33,15 +33,14 @@ export default function BuletinSection() {
     <section className="py-20 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
         <div className="flex flex-col md:flex-row items-center gap-12">
-          {/* Left Side: Cover Image with Card effect */}
+          {/* Left Side: Cover Image inside a minimalist frame */}
           <div className="w-full md:w-1/2 flex justify-center relative">
-            <div className="relative w-3/5 max-w-sm aspect-[4/5] rounded-xl shadow-2xl overflow-hidden transform -rotate-2 hover:rotate-0 transition-transform duration-500 bg-gray-100 border border-gray-200">
+            <div className="relative w-3/5 max-w-sm p-3 bg-white rounded-2xl shadow-2xl border border-gray-200/80 transform -rotate-2 hover:rotate-0 transition-transform duration-500">
               <img
                 src={buletin.cover_url || buletin.url}
                 alt={buletin.title}
-                className="w-full h-full object-contain"
+                className="w-full h-auto rounded-xl border border-gray-100"
               />
-              <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.1)] pointer-events-none" />
             </div>
             {/* Decorative background blob */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-100 rounded-full blur-3xl -z-10 opacity-50" />

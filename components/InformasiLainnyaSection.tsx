@@ -8,7 +8,8 @@ import {
   Waves,
   Plane,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Ship
 } from "lucide-react";
 
 const infoItems = [
@@ -37,10 +38,10 @@ const infoItems = [
     iconColor: "text-indigo-600",
   },
   {
-    title: "Informasi Gempa Bumi",
-    desc: "Akses data kejadian gempa bumi terkini, peta seismitas, dan status peringatan dini tsunami di seluruh wilayah kepulauan Indonesia.",
-    url: "https://www.bmkg.go.id/gempabumi",
-    Icon: Activity,
+    title: "Informasi Cuaca Pelabuhan Tegal",
+    desc: "Informasi cuaca pelabuhan Tegal meliputi arah dan kecepatan angin, tinggi gelombang, suhu air, dan arah arus permukaan.",
+    url: "https://www.bmkg.go.id/cuaca/maritim/pelabuhan/XL002",
+    Icon: Ship,
     bg: "bg-rose-50 border-rose-100/50",
     iconColor: "text-rose-600",
   },

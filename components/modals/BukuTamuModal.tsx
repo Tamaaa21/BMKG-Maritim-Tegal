@@ -80,9 +80,17 @@ export default function BukuTamuModal({ isOpen, onClose }: BukuTamuModalProps) {
           }
         }, 500);
       }
-    } catch (error) {
+    } catch (error: any) {
       setShowCamera(false);
-      setCameraError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.");
+      let errMsg = "Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.";
+      if (error.name === "NotReadableError" || error.message?.includes("Could not start video source")) {
+        errMsg = "Kamera sedang digunakan oleh aplikasi atau tab lain (seperti Zoom, Google Meet, atau kamera Windows). Silakan tutup aplikasi tersebut dan coba lagi.";
+      } else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errMsg = "Izin akses kamera ditolak. Silakan berikan izin akses kamera pada pengaturan browser Anda.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errMsg = "Kamera tidak ditemukan. Pastikan perangkat kamera Anda terhubung dengan benar.";
+      }
+      setCameraError(errMsg);
       console.error("Camera error:", error);
     }
   };

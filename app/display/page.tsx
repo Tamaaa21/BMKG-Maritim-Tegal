@@ -301,19 +301,35 @@ export default function DisplayPage() {
                   className="h-full w-auto object-contain max-w-full max-h-full transition-all duration-300 shadow-inner rounded-3xl"
                 />
 
-                {/* Bottom Overlay Controls (Visible on Hover) */}
-                <div className="absolute bottom-4 left-4 right-4 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-slate-100 flex items-center justify-between opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 z-10">
+                {/* Left/Right Slide Buttons positioned at the middle sides */}
+                <button
+                  onClick={handlePrev}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center transition-all border border-white/10 opacity-0 group-hover:opacity-100 active:scale-95 z-20"
+                  title="Sebelumnya"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/20 hover:bg-black/40 text-white rounded-full flex items-center justify-center transition-all border border-white/10 opacity-0 group-hover:opacity-100 active:scale-95 z-20"
+                  title="Selanjutnya"
+                >
+                  <ChevronRight size={24} />
+                </button>
+
+                {/* Bottom Overlay Controls (Minimalist & Transparent) */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/30 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-6 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 z-10 shadow-lg">
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={togglePlay} 
-                      className="w-8 h-8 bg-blue-50 hover:bg-blue-100 text-[#003399] active:scale-95 rounded-full flex items-center justify-center transition-all shadow-sm"
+                      className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white active:scale-95 rounded-full flex items-center justify-center transition-all"
                       title={isPlaying ? "Jeda" : "Putar"}
                     >
-                      {isPlaying ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
+                      {isPlaying ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
                     </button>
-                    <span className="text-xs text-slate-600 font-bold">
+                    <span className="text-xs text-white/95 font-bold whitespace-nowrap">
                       Slide {pamphletIndex + 1} / {pamphletImages.length}
-                      {isPlaying && <span className="ml-1.5 text-blue-600 text-[10px] uppercase font-black tracking-wider animate-pulse">(Auto)</span>}
+                      {isPlaying && <span className="ml-1.5 text-cyan-300 text-[10px] uppercase font-black tracking-wider animate-pulse">(Auto)</span>}
                     </span>
                   </div>
 
@@ -322,24 +338,18 @@ export default function DisplayPage() {
                       <button 
                         key={idx} 
                         onClick={() => setPamphletIndex(idx)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === pamphletIndex ? "bg-[#003399] w-4" : "bg-slate-200 hover:bg-slate-300 w-1.5"}`}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === pamphletIndex ? "bg-white w-4" : "bg-white/20 hover:bg-white/40 w-1.5"}`}
                       />
                     ))}
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <button onClick={handlePrev} className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-full flex items-center justify-center transition-all border" title="Sebelumnya">
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button onClick={handleNext} className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-full flex items-center justify-center transition-all border" title="Selanjutnya">
-                      <ChevronRight size={16} />
-                    </button>
                     <button 
                       onClick={toggleFullscreen} 
-                      className="w-8 h-8 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-full flex items-center justify-center transition-all border ml-1" 
+                      className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all" 
                       title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
                     >
-                      {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                      {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                     </button>
                   </div>
                 </div>

@@ -8,14 +8,10 @@ export default function WhatsAppFloating() {
   const pathname = usePathname();
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Load tooltip visibility from localStorage to remember user dismissal
+  // Show tooltip after a slight delay for better transition effect
   useEffect(() => {
-    const dismissed = localStorage.getItem("dismiss_wa_tooltip");
-    if (!dismissed) {
-      // Show tooltip after a slight delay for better transition effect
-      const timer = setTimeout(() => setShowTooltip(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => setShowTooltip(true), 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   // hide floating WA on admin, display, and buku tamu routes
@@ -31,7 +27,6 @@ export default function WhatsAppFloating() {
     e.preventDefault();
     e.stopPropagation();
     setShowTooltip(false);
-    localStorage.setItem("dismiss_wa_tooltip", "true");
   };
 
   return (
