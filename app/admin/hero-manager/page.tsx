@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Upload, X, GripVertical } from "lucide-react";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
   try {
@@ -41,6 +42,7 @@ export default function HeroManager() {
       });
       const body = await res.json();
       if (body?.success && body.data) {
+        showSuccess('Berhasil Upload', 'Gambar slider berhasil diupload.');
         const newImage = {
           id: images.length + 1,
           name: body.data.name || file.name,
@@ -49,6 +51,7 @@ export default function HeroManager() {
         };
         setImages([...images, newImage]);
       } else {
+        showError('Upload Gagal', body?.message || '');
         // fallback to local preview
         const newImage = {
           id: images.length + 1,
@@ -60,15 +63,24 @@ export default function HeroManager() {
       }
     } catch (err) {
       console.error(err);
+      showError('Upload Error', 'Terjadi kesalahan saat upload.');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
+    const confirm = await showConfirm('Hapus Gambar?', 'Gambar ini akan dihapus dari slider.');
+    if (!confirm.isConfirmed) return;
+    
     // optimistic UI update
     setImages(images.filter(img => img.id !== id));
-    fetch(`/api/admin/hero-images/${id}`, { method: "DELETE" }).then(() => {}).catch(err => console.error(err));
+    fetch(`/api/admin/hero-images/${id}`, { method: "DELETE" }).then(() => {
+      showSuccess('Berhasil Dihapus', 'Gambar slider telah dihapus.');
+    }).catch(err => {
+      console.error(err);
+      showError('Gagal Menghapus', 'Terjadi kesalahan saat menghapus gambar.');
+    });
   };
 
   const toggleActive = async (id: string, current: boolean) => {
@@ -164,7 +176,7 @@ export default function HeroManager() {
           Batal
         </button>
         <button 
-          onClick={() => alert("Perubahan slider berhasil disimpan!")}
+          onClick={() => showSuccess('Berhasil Disimpan', 'Perubahan slider berhasil disimpan!')}
           className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors"
         >
           Simpan Perubahan

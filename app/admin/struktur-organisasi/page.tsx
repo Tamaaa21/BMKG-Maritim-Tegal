@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, HelpCircle, Network, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
   try {
@@ -150,6 +151,7 @@ export default function StrukturManagerPage() {
       const resData = await res.json();
       if (resData.success) {
         setShowModal(false);
+        showSuccess('Berhasil', 'Data struktur organisasi berhasil disimpan');
         fetchList();
       } else {
         setError(resData.message || "Gagal menyimpan data");
@@ -163,7 +165,8 @@ export default function StrukturManagerPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus jabatan ini dari struktur organisasi?")) return;
+    const confirm = await showConfirm('Hapus Jabatan?', "Apakah Anda yakin ingin menghapus jabatan ini dari struktur organisasi?");
+    if (!confirm.isConfirmed) return;
 
     try {
       const res = await fetch(`/api/admin/struktur-organisasi/${id}`, {
@@ -171,13 +174,14 @@ export default function StrukturManagerPage() {
       });
       const data = await res.json();
       if (data.success) {
+        showSuccess('Berhasil Dihapus', 'Jabatan telah dihapus');
         fetchList();
       } else {
-        alert(data.message || "Gagal menghapus data");
+        showError('Gagal Menghapus', data.message || "Gagal menghapus data");
       }
     } catch (e) {
       console.error(e);
-      alert("Terjadi kesalahan saat menghapus data");
+      showError('Error', "Terjadi kesalahan saat menghapus data");
     }
   };
 

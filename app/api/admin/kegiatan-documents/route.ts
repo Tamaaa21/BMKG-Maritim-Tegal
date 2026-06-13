@@ -3,6 +3,20 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([^&]+)/,
+    /(?:youtu\.be\/)([^?]+)/,
+    /(?:youtube\.com\/embed\/)([^?]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -17,9 +31,10 @@ export async function POST(req: Request) {
     const description = (form.get("description") as any)?.toString() || null;
     const event_date = (form.get("event_date") as any)?.toString() || null;
     const category = (form.get("category") as any)?.toString() || null;
+    const youtube_url = (form.get("youtube_url") as any)?.toString() || null;
 
     const allFiles = files.length > 0 ? files : (singleFile ? [singleFile] : []);
-    if (allFiles.length === 0) return NextResponse.json({ success: false, message: "No file provided" }, { status: 400 });
+    if (allFiles.length === 0 && !youtube_url) return NextResponse.json({ success: false, message: "No file or YouTube link provided" }, { status: 400 });
 
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || "public";
 
@@ -55,14 +70,25 @@ export async function POST(req: Request) {
       return { url: (urlData as any)?.publicUrl || "", path: uploadData.path, type: file.type };
     };
 
-    const uploaded = await Promise.all(allFiles.map(uploadFile));
-    const imageUrls = uploaded.map(u => u.url);
-    const firstFile = uploaded[0];
+    let insertObj: any = { title };
 
-    const insertObj: any = { title, url: firstFile.url, file_path: firstFile.path, file_type: firstFile.type, image_urls: imageUrls };
+    if (allFiles.length > 0) {
+      const uploaded = await Promise.all(allFiles.map(uploadFile));
+      const imageUrls = uploaded.map(u => u.url);
+      const firstFile = uploaded[0];
+      insertObj.url = firstFile.url;
+      insertObj.file_path = firstFile.path;
+      insertObj.file_type = firstFile.type;
+      insertObj.image_urls = imageUrls;
+    } else if (youtube_url) {
+      const ytId = getYouTubeId(youtube_url);
+      if (ytId) insertObj.url = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    }
+
     if (description) insertObj.description = description;
     if (event_date) insertObj.event_date = event_date;
     if (category) insertObj.category = category;
+    if (youtube_url) insertObj.youtube_url = youtube_url;
 
     const { data: insertData, error: insertError } = await supabase.from("kegiatan_documents").insert(insertObj).select().single();
     if (insertError) {

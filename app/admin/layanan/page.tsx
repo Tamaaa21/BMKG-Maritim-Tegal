@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Search, Plus, Edit2, Trash2, Link as LinkIcon, Info, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 interface LayananCard {
   id: string;
@@ -100,7 +101,8 @@ export default function LayananAdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kartu layanan ini?")) return;
+    const confirm = await showConfirm('Hapus Kartu?', 'Apakah Anda yakin ingin menghapus kartu layanan ini?');
+    if (!confirm.isConfirmed) return;
 
     try {
       const res = await fetch(`/api/admin/layanan-cards/${id}`, {
@@ -109,13 +111,13 @@ export default function LayananAdminPage() {
       const json = await res.json();
       if (json?.success) {
         setServices(services.filter((s) => s.id !== id));
-        alert("Berhasil menghapus layanan");
+        showSuccess('Berhasil Dihapus', 'Berhasil menghapus layanan');
       } else {
-        alert("Gagal menghapus: " + (json?.message || "Unknown error"));
+        showError('Gagal Menghapus', json?.message || 'Unknown error');
       }
     } catch (e) {
       console.error(e);
-      alert("Terjadi kesalahan saat menghapus");
+      showError('Error', 'Terjadi kesalahan saat menghapus');
     }
   };
 
@@ -131,7 +133,7 @@ export default function LayananAdminPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaLayanan.trim()) {
-      alert("Nama Layanan wajib diisi");
+      showError('Validasi Gagal', 'Nama Layanan wajib diisi');
       return;
     }
 
@@ -159,9 +161,9 @@ export default function LayananAdminPage() {
         if (json?.success && json.data) {
           setServices([...services, json.data]);
           setIsModalOpen(false);
-          alert("Berhasil menambahkan layanan baru");
+          showSuccess('Berhasil', 'Berhasil menambahkan layanan baru');
         } else {
-          alert("Gagal menyimpan: " + (json?.message || "Unknown error"));
+          showError('Gagal Menyimpan', json?.message || 'Unknown error');
         }
       } else {
         const res = await fetch(`/api/admin/layanan-cards/${selectedId}`, {
@@ -178,14 +180,14 @@ export default function LayananAdminPage() {
         if (json?.success && json.data) {
           setServices(services.map((s) => (s.id === selectedId ? json.data : s)));
           setIsModalOpen(false);
-          alert("Berhasil memperbarui layanan");
+          showSuccess('Berhasil', 'Berhasil memperbarui layanan');
         } else {
-          alert("Gagal menyimpan: " + (json?.message || "Unknown error"));
+          showError('Gagal Menyimpan', json?.message || 'Unknown error');
         }
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat menyimpan data");
+      showError('Error', 'Terjadi kesalahan saat menyimpan data');
     } finally {
       setSaving(false);
       setUploadingCover(false);

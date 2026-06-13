@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Upload, X, Edit3, Trash2, Plus, Calendar, Clock, FolderOpen, Search, Eye, CheckCircle2, RefreshCw, FileText, ChevronRight, ChevronDown, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -149,7 +150,7 @@ export default function PrakiraanManager() {
   // ─── CATEGORY MANAGEMENT ─────────────────────────────────
 
   const handleSaveCategory = async () => {
-    if (!catForm.name.trim()) { alert("Nama kategori harus diisi"); return; }
+    if (!catForm.name.trim()) { showError('Validasi Gagal', "Nama kategori harus diisi"); return; }
     try {
       if (catForm.id) {
         const res = await fetch(`/api/admin/prakiraan-categories/${catForm.id}`, {
@@ -160,7 +161,8 @@ export default function PrakiraanManager() {
         const json = await res.json();
         if (json?.success) {
           fetchCategories(); setShowCatForm(false); setCatForm({ name: "", description: "", icon: "Sun" });
-        } else { alert(json?.message || "Gagal"); }
+          showSuccess('Berhasil', 'Kategori berhasil diperbarui');
+        } else { showError('Gagal', json?.message || "Gagal"); }
       } else {
         const res = await fetch("/api/admin/prakiraan-categories", {
           method: "POST",
@@ -170,19 +172,24 @@ export default function PrakiraanManager() {
         const json = await res.json();
         if (json?.success) {
           fetchCategories(); setShowCatForm(false); setCatForm({ name: "", description: "", icon: "Sun" });
-        } else { alert(json?.message || "Gagal"); }
+          showSuccess('Berhasil', 'Kategori berhasil ditambahkan');
+        } else { showError('Gagal', json?.message || "Gagal"); }
       }
-    } catch (e) { alert("Error"); }
+    } catch (e) { showError('Error', "Terjadi kesalahan koneksi"); }
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Hapus kategori? Kartu prakiraan dengan kategori ini akan menjadi tidak berkategori.")) return;
+    const confirm = await showConfirm('Hapus Kategori?', "Kartu prakiraan dengan kategori ini akan menjadi tidak berkategori.");
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/prakiraan-categories/${id}`, { method: "DELETE" });
       const json = await res.json();
-      if (json?.success) fetchCategories();
-      else alert("Gagal");
-    } catch { }
+      if (json?.success) {
+        showSuccess('Berhasil Dihapus', 'Kategori telah dihapus.');
+        fetchCategories();
+      }
+      else showError('Gagal Menghapus', "Gagal menghapus kategori");
+    } catch { showError('Error', 'Terjadi kesalahan koneksi'); }
   };
 
   // ─── PRAKIRAAN CRUD ─────────────────────────────────────
@@ -219,19 +226,23 @@ export default function PrakiraanManager() {
   };
 
   const deleteEntry = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus kartu prakiraan ini?")) return;
+    const confirm = await showConfirm('Hapus Prakiraan?', "Apakah Anda yakin ingin menghapus kartu prakiraan ini?");
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/prakiraan-images/${id}`, { method: "DELETE" });
       const data = await res.json();
-      if (data?.success) setItems((prev) => prev.filter((item) => item.id !== id));
-      else alert("Gagal menghapus kartu");
-    } catch (e) { console.error(e); }
+      if (data?.success) {
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        showSuccess('Berhasil Dihapus', 'Kartu telah dihapus.');
+      }
+      else showError('Gagal Menghapus', "Gagal menghapus kartu");
+    } catch (e) { console.error(e); showError('Error', 'Terjadi kesalahan koneksi'); }
   };
 
   const handleModalSave = async () => {
     if (!editingEntry) return;
-    if (!editingEntry.title.trim()) { alert("Judul kartu harus diisi"); return; }
-    if (modalMode === "add" && !editingEntry.file) { alert("Silakan pilih/unggah gambar kartu terlebih dahulu"); return; }
+    if (!editingEntry.title.trim()) { showError('Validasi Gagal', "Judul kartu harus diisi"); return; }
+    if (modalMode === "add" && !editingEntry.file) { showError('Validasi Gagal', "Silakan pilih/unggah gambar kartu terlebih dahulu"); return; }
 
     setSaving(true);
     try {
@@ -281,10 +292,10 @@ export default function PrakiraanManager() {
         const res = await fetch("/api/admin/prakiraan-images", { method: "POST", body: form });
         const body = await res.json();
         if (body?.success) {
-          alert("Berhasil menambahkan kartu prakiraan baru");
+          showSuccess('Berhasil', "Berhasil menambahkan kartu prakiraan baru");
           fetchItems(); closeModal();
         } else {
-          alert("Gagal menambahkan kartu: " + (body?.message || "Error"));
+          showError('Gagal Menyimpan', body?.message || "Error");
         }
       } else if (modalMode === "edit" && editingEntry.id) {
         let finalUrl = editingEntry.url;
@@ -338,15 +349,15 @@ export default function PrakiraanManager() {
         });
         const body = await res.json();
         if (body?.success) {
-          alert("Berhasil memperbarui kartu prakiraan");
+          showSuccess('Berhasil', "Berhasil memperbarui kartu prakiraan");
           fetchItems(); closeModal();
         } else {
-          alert("Gagal memperbarui kartu: " + (body?.message || "Error"));
+          showError('Gagal Memperbarui', body?.message || "Error");
         }
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Terjadi kesalahan saat menyimpan data");
+      showError('Error', err.message || "Terjadi kesalahan saat menyimpan data");
     } finally { setSaving(false); }
   };
 
@@ -411,13 +422,14 @@ export default function PrakiraanManager() {
         </div>
         <button
           onClick={async () => {
-            if (!confirm("Jalankan auto-switch? Konten expired dengan jadwal berikutnya akan dipromosikan.")) return;
+            const confirm = await showConfirm('Jalankan Auto-Switch?', "Konten expired dengan jadwal berikutnya akan dipromosikan.");
+            if (!confirm.isConfirmed) return;
             try {
               const res = await fetch("/api/admin/prakiraan-images/auto-switch", { method: "POST" });
               const json = await res.json();
-              alert(json.message || "Selesai");
+              showSuccess('Berhasil', json.message || "Selesai");
               fetchItems();
-            } catch { alert("Gagal menjalankan auto-switch"); }
+            } catch { showError('Gagal', "Gagal menjalankan auto-switch"); }
           }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-xl transition-colors text-xs border border-blue-200"
         >

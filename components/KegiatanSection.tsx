@@ -55,25 +55,69 @@ const activities = [
   },
 ];
 
+function isImageFile(url: string): boolean {
+  if (!url) return false;
+  const ext = url.split('?')[0].toLowerCase();
+  return /\.(jpe?g|png|gif|bmp|webp|svg|ico)$/i.test(ext);
+}
+
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=)([^&]+)/,
+    /(?:youtu\.be\/)([^?]+)/,
+    /(?:youtube\.com\/embed\/)([^?]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export default function KegiatanSection({ limit }: { limit?: number }) {
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [lightbox, setLightbox] = useState<null | any>(null);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(false);
   const [items, setItems] = useState<any[]>([]);
+  const [brokenImgs, setBrokenImgs] = useState<Set<string>>(new Set());
+
+  const markBroken = (url: string) => {
+    if (!brokenImgs.has(url)) setBrokenImgs(new Set(brokenImgs).add(url));
+  };
 
   useEffect(() => {
     let mounted = true;
     fetch('/api/admin/kegiatan-documents').then(r => r.json()).then((b) => {
       if (!mounted) return;
       if (b?.success) {
-        const data = b.data.map((d: any) => ({
-          title: d.title,
-          date: d.event_date ? new Date(d.event_date).toLocaleDateString('id-ID') : (new Date(d.created_at).toLocaleDateString('id-ID')),
-          category: d.category || 'Lainnya',
-          image: d.url,
-          images: (d.image_urls && d.image_urls.length > 0) ? d.image_urls : [d.url],
-          description: d.description || '',
-        }));
+        const data = b.data.map((d: any) => {
+          const imgs: string[] = [];
+          if (d.image_urls && d.image_urls.length > 0) {
+            imgs.push(...d.image_urls.filter(Boolean));
+          } else if (d.url && !d.url.includes('img.youtube.com')) {
+            imgs.push(d.url);
+          } else if (d.url) {
+            imgs.push(d.url);
+          }
+          if (d.youtube_url) {
+            const ytId = getYouTubeId(d.youtube_url);
+            if (ytId && !imgs.some(i => i.includes('img.youtube.com'))) {
+              imgs.push(`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`);
+            }
+          }
+          return {
+            title: d.title,
+            date: d.event_date ? new Date(d.event_date).toLocaleDateString('id-ID') : (new Date(d.created_at).toLocaleDateString('id-ID')),
+            category: d.category || 'Lainnya',
+            image: imgs[0] || '',
+            images: imgs,
+            description: d.description || '',
+            youtube_url: d.youtube_url || '',
+            file_type: d.file_type || '',
+          };
+        });
         setItems(data);
       } else {
         setItems(activities);
@@ -83,6 +127,28 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
   }, []);
 
   const filtered = activeCategory === 'Semua' ? items : items.filter(a => a.category === activeCategory);
+  const displayItems = limit ? filtered.slice(0, limit) : filtered;
+  const totalSlides = lightbox ? (lightbox.images?.length || 0) : 0;
+
+  const goToSlide = (idx: number) => {
+    setLightboxImageIndex(idx);
+    setShowVideo(false);
+  };
+
+  const nextSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (totalSlides > 1) goToSlide((lightboxImageIndex + 1) % totalSlides);
+  };
+  const prevSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (totalSlides > 1) goToSlide((lightboxImageIndex - 1 + totalSlides) % totalSlides);
+  };
+
+  const openLightbox = (item: any) => {
+    setLightbox(item);
+    setLightboxImageIndex(0);
+    setShowVideo(false);
+  };
 
   return (
     <section id="kegiatan" className="py-20 bg-gray-50">
@@ -94,19 +160,57 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
           <p className="text-gray-500 mt-2">Dokumentasi kegiatan Stasiun Meteorologi Maritim Tegal</p>
         </div>
 
+        {/* Category Tabs */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {kegiatanTabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveCategory(tab)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                activeCategory === tab
+                  ? 'bg-[#003399] text-white'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-[#003399] hover:text-[#003399]'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
         {/* Gallery Grid */}
         <div className="flex flex-wrap justify-center gap-4">
-          {(limit ? items.slice(0, limit) : items).map((item, i) => (
+          {displayItems.map((item, i) => (
             <div
               key={i}
               className="relative rounded-xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-lg transition-all duration-300 w-full sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)] h-56 md:h-64"
-              onClick={() => { setLightbox(item); setLightboxImageIndex(0); }}
+              onClick={() => openLightbox(item)}
             >
-              <img
-                src={item.images?.[0] || item.image}
-                alt={item.title}
-                className="w-full h-full object-contain bg-gray-100 group-hover:scale-105 transition-transform duration-500"
-              />
+              {item.image && !brokenImgs.has(item.image) && isImageFile(item.image) ? (
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  onError={() => markBroken(item.image)}
+                  className="w-full h-full object-contain bg-gray-100 group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                  {item.file_type?.includes('pdf') ? (
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  ) : (
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  )}
+                </div>
+              )}
+              {item.images.length > 1 && (
+                <div className="absolute top-2 left-2 z-10 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">
+                  {item.images.length}
+                </div>
+              )}
+              {item.youtube_url && (
+                <div className="absolute top-2 right-2 z-10 bg-red-600 text-white p-1.5 rounded-full shadow-lg">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                 <p className="text-white text-xs font-semibold leading-tight">{item.title}</p>
@@ -120,7 +224,7 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
         </div>
 
         {/* Selanjutnya */}
-        {limit && (
+        {limit && items.length > limit && (
           <div className="mt-10 text-center">
             <a
               href="/kegiatan"
@@ -136,58 +240,99 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
       {lightbox && (
         <div
           className="fixed inset-0 z-50 bg-[#070b19]/97 backdrop-blur-md flex flex-col md:flex-row select-none"
-          onClick={() => setLightbox(null)}
+          onClick={() => { setLightbox(null); setShowVideo(false); }}
         >
-          {/* Close Button (Floating Top Left/Right depending on layout) */}
           <button
             className="absolute top-4 right-4 z-50 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all duration-200 backdrop-blur-sm border border-white/10"
-            onClick={() => setLightbox(null)}
+            onClick={() => { setLightbox(null); setShowVideo(false); }}
           >
             <X size={20} />
           </button>
 
-          {/* Left: Image Viewer Area (Uncropped) */}
-          <div 
+          {/* Left: Viewer Area */}
+          <div
             className="flex-1 flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
-            onClick={() => setLightbox(null)}
+            onClick={() => { setLightbox(null); setShowVideo(false); }}
           >
-            <div 
+            <div
               className="relative max-w-full max-h-[45vh] md:max-h-[85vh] flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img 
-                src={lightbox.images?.[lightboxImageIndex] || lightbox.image} 
-                alt={lightbox.title} 
-                className="max-w-full max-h-[45vh] md:max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.6)] border border-white/10" 
-              />
-              {(lightbox.images?.length || 1) > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setLightboxImageIndex(i => (i - 1 + lightbox.images.length) % lightbox.images.length); }}
-                    className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-sm border border-white/10 text-xs"
-                  >
-                    Prev
-                  </button>
-                  <span className="text-white/70 text-xs">
-                    {lightboxImageIndex + 1} / {lightbox.images.length}
-                  </span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setLightboxImageIndex(i => (i + 1) % lightbox.images.length); }}
-                    className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-sm border border-white/10 text-xs"
-                  >
-                    Next
-                  </button>
-                </div>
+              {/* YouTube Embed */}
+              {showVideo && lightbox.youtube_url ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${getYouTubeId(lightbox.youtube_url)}?autoplay=1`}
+                  title={lightbox.title}
+                  className="w-full max-w-2xl aspect-video rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.6)] border border-white/10"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <>
+                  {/* Prev Arrow */}
+                  {totalSlides > 1 && (
+                    <button
+                      onClick={prevSlide}
+                      className="absolute left-2 z-10 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-sm border border-white/10"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                  )}
+
+                  {/* Image or YouTube Thumbnail */}
+                  <div className="relative">
+                    <img
+                      src={lightbox.images?.[lightboxImageIndex] || lightbox.image}
+                      alt={lightbox.title}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      className="max-w-full max-h-[45vh] md:max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.6)] border border-white/10"
+                    />
+                    {lightbox.images?.[lightboxImageIndex]?.includes('img.youtube.com') && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowVideo(true); }}
+                        className="absolute inset-0 flex items-center justify-center"
+                      >
+                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Next Arrow */}
+                  {totalSlides > 1 && (
+                    <button
+                      onClick={nextSlide}
+                      className="absolute right-2 z-10 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-sm border border-white/10"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  )}
+
+                  {/* Dot Navigation */}
+                  {totalSlides > 1 && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                      {lightbox.images.map((_: any, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => { e.stopPropagation(); goToSlide(idx); }}
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            idx === lightboxImageIndex ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          {/* Right: Details Side Panel (Full height on md+, bottom sheet on mobile) */}
-          <div 
+          {/* Right: Details Side Panel */}
+          <div
             className="w-full md:w-96 md:h-full bg-[#0d1527]/95 border-t md:border-t-0 md:border-l border-slate-800/80 p-6 md:p-8 backdrop-blur-md shadow-[0_-10px_30px_rgba(0,0,0,0.3)] md:shadow-[-10px_0_30px_rgba(0,0,0,0.3)] flex flex-col justify-start text-left overflow-y-auto shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Category & Date Metadata */}
             <div className="flex flex-wrap items-center gap-3 mb-3 shrink-0">
               <span className="inline-flex items-center text-xs font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
                 {lightbox.category}
@@ -196,14 +341,18 @@ export default function KegiatanSection({ limit }: { limit?: number }) {
                 <Calendar size={14} className="text-blue-400 shrink-0" />
                 <span>{lightbox.date}</span>
               </div>
+              {lightbox.youtube_url && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  Video
+                </span>
+              )}
             </div>
 
-            {/* Title */}
             <h3 className="text-white font-extrabold text-lg sm:text-xl tracking-tight leading-tight shrink-0 mb-4">
               {lightbox.title}
             </h3>
 
-            {/* Description */}
             {lightbox.description && (
               <div className="pt-4 border-t border-slate-800/80 flex-1">
                 <p className="text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">

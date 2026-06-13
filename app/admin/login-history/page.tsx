@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LogIn, Clock, Search, ChevronLeft, ChevronRight, Download, Monitor, Globe, Trash2, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
   try {
@@ -68,32 +69,34 @@ export default function LoginHistoryPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert("Gagal melakukan backup");
+      showError('Gagal', "Gagal melakukan backup");
     }
   };
 
   const handleClearHistory = async () => {
-    if (!confirm("Apakah Anda yakin ingin menghapus SEMUA riwayat login? Data yang dihapus tidak dapat dikembalikan.")) return;
+    const confirm = await showConfirm('Hapus Semua Riwayat?', "Apakah Anda yakin ingin menghapus SEMUA riwayat login? Data yang dihapus tidak dapat dikembalikan.");
+    if (!confirm.isConfirmed) return;
     
     try {
       const res = await fetch("/api/admin/login-logs", { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        alert("Riwayat login berhasil dihapus");
+        showSuccess('Berhasil Dihapus', "Riwayat login berhasil dihapus");
         fetchLogs();
       } else {
-        alert(data.message || "Gagal menghapus riwayat login");
+        showError('Gagal Menghapus', data.message || "Gagal menghapus riwayat login");
       }
     } catch (e) {
       console.error(e);
-      alert("Terjadi kesalahan koneksi");
+      showError('Error', "Terjadi kesalahan koneksi");
     }
   };
 
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm(`Restore data dari file ${file.name}? Data akan ditambahkan ke database.`)) return;
+    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`);
+    if (!confirm.isConfirmed) return;
 
     setRestoring(true);
     try {
@@ -106,14 +109,14 @@ export default function LoginHistoryPage() {
       });
       const json = await res.json();
       if (json?.success) {
-        alert(json.message || "Restore berhasil");
+        showSuccess('Berhasil', json.message || "Restore berhasil");
         fetchLogs();
       } else {
-        alert(json?.message || "Restore gagal");
+        showError('Gagal', json?.message || "Restore gagal");
       }
     } catch (e) {
       console.error(e);
-      alert("File backup tidak valid");
+      showError('File Tidak Valid', "File backup tidak valid");
     } finally {
       setRestoring(false);
     }

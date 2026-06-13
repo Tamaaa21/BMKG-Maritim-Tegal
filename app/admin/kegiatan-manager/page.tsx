@@ -5,6 +5,7 @@ import { Upload, Trash } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { kegiatanCategories } from "@/components/kegiatanCategories";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
   try {
@@ -27,6 +28,7 @@ export default function KegiatanManager() {
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [category, setCategory] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const categories = kegiatanCategories;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
@@ -42,34 +44,42 @@ export default function KegiatanManager() {
   useEffect(() => { fetchItems(); }, []);
 
   const handleUpload = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 && !youtubeUrl) return;
     setUploading(true);
     try {
       const form = new FormData();
       for (const f of files) form.append('files', f);
-      form.append('title', title || files[0].name);
+      form.append('title', title || files[0]?.name || 'Kegiatan');
       if (description) form.append('description', description);
       if (eventDate) form.append('event_date', eventDate);
       if (category) form.append('category', category);
+      if (youtubeUrl) form.append('youtube_url', youtubeUrl);
       const res = await fetch('/api/admin/kegiatan-documents', { method: 'POST', body: form });
       const json = await res.json();
       if (json?.success) {
+        showSuccess('Berhasil Upload', 'Dokumen berhasil diupload.');
         setItems([json.data, ...items]);
-        setFiles([]); setTitle(''); setDescription(''); setEventDate(''); setCategory('');
+        setFiles([]); setTitle(''); setDescription(''); setEventDate(''); setCategory(''); setYoutubeUrl('');
       } else {
-        alert('Upload gagal: ' + (json?.message || ''));
+        showError('Upload Gagal', json?.message || '');
       }
-    } catch (e) { console.error(e); alert('Upload error'); }
+    } catch (e) { console.error(e); showError('Upload Error', 'Terjadi kesalahan saat upload.'); }
     setUploading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus dokumen ini?')) return;
+    const confirm = await showConfirm('Hapus Dokumen?', 'Dokumen ini akan dihapus permanen.');
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/kegiatan-documents/${id}`, { method: 'DELETE' });
       const json = await res.json();
-      if (json?.success) setItems(items.filter(i => i.id !== id));
-    } catch (e) { console.error(e); }
+      if (json?.success) {
+        showSuccess('Berhasil Dihapus', 'Dokumen telah dihapus.');
+        setItems(items.filter(i => i.id !== id));
+      } else {
+        showError('Gagal Menghapus', json?.message || '');
+      }
+    } catch (e) { console.error(e); showError('Error', 'Terjadi kesalahan saat menghapus.'); }
   };
 
   return (
@@ -90,7 +100,20 @@ export default function KegiatanManager() {
             <Input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="mt-1" />
           </div>
         </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Kategori</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border border-input px-3 py-2 text-sm">
+              <option value="">Pilih kategori</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Link YouTube</label>
+            <Input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="mt-1" />
+          </div>
+        </div>
+ 7d4cd65 (update dokumentasi kegiatan)
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
           <Textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1" rows={3} />
@@ -108,7 +131,7 @@ export default function KegiatanManager() {
               ))}
             </div>
           )}
-          <button onClick={handleUpload} disabled={uploading || files.length === 0} className="px-4 py-2 bg-[#003399] text-white rounded-md">{uploading ? 'Mengupload...' : 'Upload'}</button>
+          <button onClick={handleUpload} disabled={uploading || (files.length === 0 && !youtubeUrl)} className="px-4 py-2 bg-[#003399] text-white rounded-md">{uploading ? 'Mengupload...' : 'Upload'}</button>
         </div>
       </div>
 
@@ -116,11 +139,21 @@ export default function KegiatanManager() {
         {items.map(item => (
           <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex gap-4 items-start">
             <div className="flex-shrink-0 space-y-1">
-              {(item.image_urls && item.image_urls.length > 0 ? item.image_urls : [item.url]).map((url: string, i: number) => (
-                <div key={i} style={{ width: 80, height: 60 }} className="overflow-hidden rounded-md bg-gray-100">
-                  <img src={url} alt={item.title} className="w-full h-full object-cover" />
+              {(item.image_urls && item.image_urls.length > 0 ? item.image_urls : (item.url ? [item.url] : [])).filter(Boolean).map((url: string, i: number) => (
+                <div key={i} style={{ width: 80, height: 60 }} className="overflow-hidden rounded-md bg-gray-100 relative flex items-center justify-center">
+                  <img src={url} alt={item.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  {item.youtube_url && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    </div>
+                  )}
                 </div>
               ))}
+              {!item.url && !item.image_urls && item.youtube_url && (
+                <div style={{ width: 80, height: 60 }} className="overflow-hidden rounded-md bg-gray-200 flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#999"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-start">
@@ -140,16 +173,18 @@ export default function KegiatanManager() {
                             description: editValues.description,
                             event_date: editValues.event_date,
                             category: editValues.category,
+                            youtube_url: editValues.youtube_url || null,
                           };
                           const res = await fetch(`/api/admin/kegiatan-documents/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                           const json = await res.json();
                           if (json?.success) {
+                            showSuccess('Berhasil Disimpan', 'Perubahan berhasil disimpan.');
                             setItems(items.map(i => i.id === item.id ? json.data : i));
                             setEditingId(null);
                           } else {
-                            alert('Gagal menyimpan');
+                            showError('Gagal Menyimpan', json?.message || '');
                           }
-                        } catch (e) { console.error(e); alert('Error saat menyimpan'); }
+                        } catch (e) { console.error(e); showError('Error', 'Terjadi kesalahan saat menyimpan.'); }
                       }} className="text-sm px-2 py-1 bg-green-600 text-white rounded">Simpan</button>
                       <button onClick={() => setEditingId(null)} className="text-sm px-2 py-1 bg-gray-200 rounded">Batal</button>
                     </>
@@ -157,7 +192,7 @@ export default function KegiatanManager() {
                     <>
                       <button onClick={() => {
                         setEditingId(item.id);
-                        setEditValues({ title: item.title, description: item.description, event_date: item.event_date, category: item.category });
+                        setEditValues({ title: item.title, description: item.description, event_date: item.event_date, category: item.category, youtube_url: item.youtube_url || '' });
                       }} className="text-sm px-2 py-1 bg-blue-600 text-white rounded">Edit</button>
                       {isAdmin() && (
                         <button onClick={() => handleDelete(item.id)} className="text-red-500 px-2 py-1"><Trash /></button>
@@ -171,13 +206,25 @@ export default function KegiatanManager() {
                   <Textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full" rows={2} />
                   <div className="flex gap-2 mt-2">
                     <Input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="w-48" />
-                    {/* Kategori dropdown removed */}
+
+                    <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="rounded-md border border-input px-3 py-2 text-sm">
+                      <option value="">Pilih kategori</option>
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <Input value={editValues.youtube_url || ''} onChange={e => setEditValues({...editValues, youtube_url: e.target.value})} placeholder="Link YouTube" className="flex-1" />
+7d4cd65 (update dokumentasi kegiatan)
                   </div>
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-gray-500 mt-1">{item.description}</p>
                   <p className="text-xs text-gray-400 mt-2">{item.event_date ? new Date(item.event_date).toLocaleDateString() : ''} {item.category ? `· ${item.category}` : ''}</p>
+                  {item.youtube_url && (
+                    <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-red-500 mt-1 hover:underline">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                      YouTube
+                    </a>
+                  )}
                 </>
               )}
             </div>

@@ -5,6 +5,7 @@ import { Search, Trash2, Eye, Download } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 interface BukuTamuEntry {
   id: string;
@@ -69,13 +70,16 @@ export default function BukuTamuPage() {
   }, [search, data]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
+    const confirm = await showConfirm('Hapus Data?', 'Apakah Anda yakin ingin menghapus data ini?');
+    if (!confirm.isConfirmed) return;
 
     try {
       await fetch(`/api/admin/buku-tamu/${id}`, { method: "DELETE" });
       setData(data.filter(item => item.id !== id));
+      showSuccess('Berhasil Dihapus', 'Data telah dihapus.');
     } catch (error) {
       console.error(error);
+      showError('Gagal Menghapus', 'Terjadi kesalahan saat menghapus data.');
     }
   };
 
@@ -184,14 +188,15 @@ export default function BukuTamuPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert("Gagal melakukan backup");
+      showError('Gagal', 'Gagal melakukan backup');
     }
   };
 
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm(`Restore data dari file ${file.name}? Data akan ditambahkan ke database.`)) return;
+    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`);
+    if (!confirm.isConfirmed) return;
 
     setRestoring(true);
     try {
@@ -204,14 +209,14 @@ export default function BukuTamuPage() {
       });
       const json = await res.json();
       if (json?.success) {
-        alert(json.message || "Restore berhasil");
+        showSuccess('Berhasil', json.message || 'Restore berhasil');
         fetchData();
       } else {
-        alert(json?.message || "Restore gagal");
+        showError('Gagal', json?.message || 'Restore gagal');
       }
     } catch (e) {
       console.error(e);
-      alert("File backup tidak valid");
+      showError('File Tidak Valid', 'File backup tidak valid');
     } finally {
       setRestoring(false);
     }

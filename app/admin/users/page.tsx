@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Edit3, Trash2, UserPlus, Shield, ShieldOff, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 interface User {
   id: string;
@@ -66,7 +67,8 @@ export default function UsersManager() {
   };
 
   const handleToggleActive = async (user: User) => {
-    if (!confirm(`${user.is_active ? "Nonaktifkan" : "Aktifkan"} akun ${user.username}?`)) return;
+    const confirm = await showConfirm(user.is_active ? "Nonaktifkan Akun?" : "Aktifkan Akun?", `Anda akan ${user.is_active ? "menonaktifkan" : "mengaktifkan"} akun ${user.username}`);
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: "PATCH",
@@ -75,36 +77,43 @@ export default function UsersManager() {
       });
       const json = await res.json();
       if (json?.success) {
+        showSuccess('Berhasil', `Akun berhasil ${user.is_active ? "dinonaktifkan" : "diaktifkan"}`);
         fetchUsers();
+      } else {
+        showError('Gagal', json?.message || 'Gagal mengubah status');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'Terjadi kesalahan koneksi');
     }
   };
 
   const handleDelete = async (user: User) => {
-    if (!confirm(`Hapus akun ${user.username}? Tindakan ini tidak dapat dibatalkan.`)) return;
+    const confirm = await showConfirm('Hapus Akun?', `Hapus akun ${user.username}? Tindakan ini tidak dapat dibatalkan.`);
+    if (!confirm.isConfirmed) return;
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
       const json = await res.json();
       if (json?.success) {
+        showSuccess('Berhasil Dihapus', 'Akun berhasil dihapus');
         fetchUsers();
       } else {
-        alert("Gagal menghapus pengguna");
+        showError('Gagal Menghapus', json?.message || "Gagal menghapus pengguna");
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'Terjadi kesalahan saat menghapus');
     }
   };
 
   const handleModalSave = async () => {
     if (!editingUser) return;
     if (!editingUser.username.trim()) {
-      alert("Username harus diisi");
+      showError('Validasi Gagal', "Username harus diisi");
       return;
     }
     if (modalMode === "add" && !editingUser.password) {
-      alert("Password harus diisi");
+      showError('Validasi Gagal', "Password harus diisi");
       return;
     }
 
@@ -118,11 +127,12 @@ export default function UsersManager() {
         });
         const json = await res.json();
         if (json?.success) {
+          showSuccess('Berhasil', 'Pengguna berhasil ditambahkan');
           fetchUsers();
           setIsModalOpen(false);
           setEditingUser(null);
         } else {
-          alert(json?.message || "Gagal menambahkan pengguna");
+          showError('Gagal', json?.message || "Gagal menambahkan pengguna");
         }
       } else if (editingUser.id) {
         const payload: any = { nama: editingUser.nama, role: editingUser.role };
@@ -136,15 +146,16 @@ export default function UsersManager() {
         });
         const json = await res.json();
         if (json?.success) {
+          showSuccess('Berhasil', 'Pengguna berhasil diperbarui');
           fetchUsers();
           setIsModalOpen(false);
           setEditingUser(null);
         } else {
-          alert(json?.message || "Gagal memperbarui pengguna");
+          showError('Gagal', json?.message || "Gagal memperbarui pengguna");
         }
       }
     } catch (err: any) {
-      alert(err.message || "Terjadi kesalahan");
+      showError('Error', err.message || "Terjadi kesalahan");
     } finally {
       setSaving(false);
     }

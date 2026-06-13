@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Upload, Trash, Plus, FileText, Image } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
   try {
@@ -42,7 +43,7 @@ export default function PublicationManager() {
 
   const handleUpload = async () => {
     if (!file && !addingUrl) {
-      alert("Silakan pilih file publikasi atau isi URL file");
+      showError('Validasi Gagal', 'Silakan pilih file publikasi atau isi URL file');
       return;
     }
     setLoading(true);
@@ -74,21 +75,33 @@ export default function PublicationManager() {
         setTitle('');
         setDescription('');
         fetchList();
-        alert("Publikasi berhasil ditambahkan");
+        showSuccess('Berhasil', 'Publikasi berhasil ditambahkan');
       } else {
-        alert("Gagal menambahkan publikasi: " + (j?.error || "Error"));
+        showError('Gagal Menambahkan', j?.error || 'Error');
       }
     } catch (e) {
       console.error(e);
-      alert("Terjadi kesalahan koneksi");
+      showError('Error Koneksi', 'Terjadi kesalahan koneksi');
     }
     setLoading(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus publikasi/buletin ini?')) return;
-    await fetch(`/api/admin/publications?id=${id}`, { method: 'DELETE' });
-    fetchList();
+    const confirm = await showConfirm('Hapus Publikasi?', 'Apakah Anda yakin ingin menghapus publikasi/buletin ini?');
+    if (!confirm.isConfirmed) return;
+    try {
+      const res = await fetch(`/api/admin/publications?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data?.success) {
+        showSuccess('Berhasil Dihapus', 'Publikasi telah dihapus.');
+        fetchList();
+      } else {
+        showError('Gagal Menghapus', data?.error || 'Error saat menghapus');
+      }
+    } catch (e) {
+      console.error(e);
+      showError('Error Koneksi', 'Terjadi kesalahan koneksi');
+    }
   };
 
   return (
