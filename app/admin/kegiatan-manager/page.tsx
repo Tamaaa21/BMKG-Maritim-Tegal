@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Upload, Trash } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { kegiatanCategories } from "@/components/kegiatanCategories";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
 
 function getUserRole(): string {
@@ -27,9 +26,7 @@ export default function KegiatanManager() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
-  const [category, setCategory] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
-  const categories = kegiatanCategories;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<any>({});
 
@@ -52,14 +49,13 @@ export default function KegiatanManager() {
       form.append('title', title || files[0]?.name || 'Kegiatan');
       if (description) form.append('description', description);
       if (eventDate) form.append('event_date', eventDate);
-      if (category) form.append('category', category);
       if (youtubeUrl) form.append('youtube_url', youtubeUrl);
       const res = await fetch('/api/admin/kegiatan-documents', { method: 'POST', body: form });
       const json = await res.json();
       if (json?.success) {
         showSuccess('Berhasil Upload', 'Dokumen berhasil diupload.');
         setItems([json.data, ...items]);
-        setFiles([]); setTitle(''); setDescription(''); setEventDate(''); setCategory(''); setYoutubeUrl('');
+        setFiles([]); setTitle(''); setDescription(''); setEventDate(''); setYoutubeUrl('');
       } else {
         showError('Upload Gagal', json?.message || '');
       }
@@ -100,18 +96,9 @@ export default function KegiatanManager() {
             <Input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="mt-1" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Kategori</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border border-input px-3 py-2 text-sm">
-              <option value="">Pilih kategori</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Link YouTube</label>
-            <Input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="mt-1" />
-          </div>
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700">Link YouTube (opsional)</label>
+          <Input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="mt-1" />
         </div>
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
@@ -167,14 +154,25 @@ export default function KegiatanManager() {
                     <>
                       <button onClick={async () => {
                         try {
-                          const body = {
-                            title: editValues.title,
-                            description: editValues.description,
-                            event_date: editValues.event_date,
-                            category: editValues.category,
-                            youtube_url: editValues.youtube_url || null,
-                          };
-                          const res = await fetch(`/api/admin/kegiatan-documents/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                          const hasFiles = editValues.files && editValues.files.length > 0;
+                          let res;
+                          if (hasFiles) {
+                            const form = new FormData();
+                            for (const f of editValues.files) form.append('files', f);
+                            if (editValues.title) form.append('title', editValues.title);
+                            if (editValues.description) form.append('description', editValues.description);
+                            if (editValues.event_date) form.append('event_date', editValues.event_date);
+                            if (editValues.youtube_url) form.append('youtube_url', editValues.youtube_url);
+                            res = await fetch(`/api/admin/kegiatan-documents/${item.id}`, { method: 'PATCH', body: form });
+                          } else {
+                            const body = {
+                              title: editValues.title,
+                              description: editValues.description,
+                              event_date: editValues.event_date,
+                              youtube_url: editValues.youtube_url || null,
+                            };
+                            res = await fetch(`/api/admin/kegiatan-documents/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                          }
                           const json = await res.json();
                           if (json?.success) {
                             showSuccess('Berhasil Disimpan', 'Perubahan berhasil disimpan.');
@@ -191,7 +189,7 @@ export default function KegiatanManager() {
                     <>
                       <button onClick={() => {
                         setEditingId(item.id);
-                        setEditValues({ title: item.title, description: item.description, event_date: item.event_date, category: item.category, youtube_url: item.youtube_url || '' });
+                        setEditValues({ title: item.title, description: item.description, event_date: item.event_date, youtube_url: item.youtube_url || '', files: [] });
                       }} className="text-sm px-2 py-1 bg-blue-600 text-white rounded">Edit</button>
                       {isAdmin() && (
                         <button onClick={() => handleDelete(item.id)} className="text-red-500 px-2 py-1"><Trash /></button>
@@ -201,21 +199,21 @@ export default function KegiatanManager() {
                 </div>
               </div>
               {editingId === item.id ? (
-                  <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <Textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full" rows={2} />
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="w-48" />
-                    <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="rounded-md border border-input px-3 py-2 text-sm">
-                      <option value="">Pilih kategori</option>
-                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <Input value={editValues.youtube_url || ''} onChange={e => setEditValues({...editValues, youtube_url: e.target.value})} placeholder="Link YouTube" className="flex-1" />
+                    <Input value={editValues.youtube_url || ''} onChange={e => setEditValues({...editValues, youtube_url: e.target.value})} placeholder="Link YouTube" className="flex-1 min-w-[200px]" />
                   </div>
+                  <label className="inline-flex items-center gap-2 px-3 py-1.5 border border-dashed text-sm rounded-md cursor-pointer text-gray-600 hover:bg-gray-50">
+                    <Upload size={16} /> <span>{editValues.files && editValues.files.length > 0 ? `${editValues.files.length} gambar baru dipilih` : 'Ganti/Tambah Gambar'}</span>
+                    <input type="file" accept="image/*,application/pdf" multiple onChange={e => setEditValues({...editValues, files: Array.from(e.target.files || [])})} className="hidden" />
+                  </label>
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                  <p className="text-xs text-gray-400 mt-2">{item.event_date ? new Date(item.event_date).toLocaleDateString() : ''} {item.category ? `· ${item.category}` : ''}</p>
+                  <p className="text-xs text-gray-400 mt-2">{item.event_date ? new Date(item.event_date).toLocaleDateString() : ''}</p>
                   {item.youtube_url && (
                     <a href={item.youtube_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-red-500 mt-1 hover:underline">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>

@@ -67,15 +67,15 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
         showScrolledBg ? "bg-transparent" : "bg-[#003399] shadow-lg"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white">
               <img src="/bmkg-logo.png" alt="B" className="w-full h-full object-contain" />
             </div>
-            <div className={minimal ? "block" : "hidden sm:block"}>
-              <p className="text-white font-bold text-sm leading-tight">BMKG</p>
+            <div className="block">
+              <p className="text-white font-bold text-sm sm:text-base leading-tight">BMKG</p>
               <p className="text-blue-200 text-xs leading-tight">Stasiun Meteorologi Maritim Tegal</p>
             </div>
           </div>
@@ -101,10 +101,10 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
           {/* Right Actions */}
           {!minimal && (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-mono text-blue-100 border border-blue-300/40 rounded-full bg-blue-900/30">
-                <Clock size={14} className="text-blue-300" />
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-mono text-blue-100 border border-blue-300/40 rounded-full bg-blue-900/30">
+                <Clock size={14} className="text-blue-300 shrink-0" />
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></span>
-                <span>
+                <span className="truncate">
                   {isHome && dateString ? `${dateString} | ` : ""}
                   {timeString || "--:--:-- WIB"}
                 </span>

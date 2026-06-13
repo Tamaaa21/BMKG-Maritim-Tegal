@@ -119,6 +119,28 @@ export default function BukuTamuPage() {
     setSelectedLogs(newSelected);
   };
 
+  const handleDelete = async (id: string) => {
+    const confirm = await showConfirm('Hapus Data?', 'Data ini akan dihapus permanen.');
+    if (!confirm.isConfirmed) return;
+    try {
+      const res = await fetch(`/api/admin/buku-tamu`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        showSuccess('Berhasil Dihapus', 'Data telah dihapus.');
+        fetchData();
+      } else {
+        showError('Gagal Menghapus', resData.message || 'Terjadi kesalahan.');
+      }
+    } catch (error) {
+      console.error(error);
+      showError('Gagal Menghapus', 'Terjadi kesalahan koneksi.');
+    }
+  };
+
   const handleExportPDF = () => {
     const doc = new jsPDF("landscape");
     const pageW = doc.internal.pageSize.width;
