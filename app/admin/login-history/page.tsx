@@ -25,6 +25,7 @@ interface LoginLog {
   ip_address: string;
   user_agent: string;
   created_at: string;
+  aktivitas?: string;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -33,9 +34,12 @@ export default function LoginHistoryPage() {
   const [logs, setLogs] = useState<LoginLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [restoring, setRestoring] = useState(false);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
 
   const fetchLogs = async () => {
     try {
@@ -74,14 +78,25 @@ export default function LoginHistoryPage() {
   };
 
   const handleClearHistory = async () => {
-    const confirm = await showConfirm('Hapus Semua Riwayat?', "Apakah Anda yakin ingin menghapus SEMUA riwayat login? Data yang dihapus tidak dapat dikembalikan.");
+    const isDeletingSpecific = selectedLogs.size > 0;
+    const confirm = await showConfirm(
+      isDeletingSpecific ? 'Hapus Riwayat Terpilih?' : 'Hapus Semua Riwayat?', 
+      isDeletingSpecific ? `Apakah Anda yakin ingin menghapus ${selectedLogs.size} riwayat login terpilih?` : "Apakah Anda yakin ingin menghapus SEMUA riwayat login? Data yang dihapus tidak dapat dikembalikan."
+    );
     if (!confirm.isConfirmed) return;
     
     try {
-      const res = await fetch("/api/admin/login-logs", { method: "DELETE" });
+      const payload = isDeletingSpecific ? JSON.stringify({ ids: Array.from(selectedLogs) }) : undefined;
+      const res = await fetch("/api/admin/login-logs", { 
+        method: "DELETE",
+        headers: isDeletingSpecific ? { "Content-Type": "application/json" } : undefined,
+        body: payload
+      });
       const data = await res.json();
       if (data.success) {
-        showSuccess('Berhasil Dihapus', "Riwayat login berhasil dihapus");
+        showSuccess('Berhasil Dihapus', data.message || "Riwayat login berhasil dihapus");
+        setSelectedLogs(new Set());
+        setIsDeleteMode(false);
         fetchLogs();
       } else {
         showError('Gagal Menghapus', data.message || "Gagal menghapus riwayat login");
@@ -90,6 +105,24 @@ export default function LoginHistoryPage() {
       console.error(e);
       showError('Error', "Terjadi kesalahan koneksi");
     }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLogs.size === paginated.length && paginated.length > 0) {
+      setSelectedLogs(new Set());
+    } else {
+      setSelectedLogs(new Set(paginated.map(l => l.id)));
+    }
+  };
+
+  const toggleSelectLog = (id: string) => {
+    const newSelected = new Set(selectedLogs);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedLogs(newSelected);
   };
 
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,11 +156,20 @@ export default function LoginHistoryPage() {
     e.target.value = "";
   };
 
-  const filtered = logs.filter(log =>
-    log.username.toLowerCase().includes(search.toLowerCase()) ||
-    (log.ip_address || "").includes(search) ||
-    (log.user_agent || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = logs.filter(log => {
+    const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
+      (log.ip_address || "").includes(search) ||
+      (log.user_agent || "").toLowerCase().includes(search.toLowerCase());
+      
+    if (!matchesSearch) return false;
+    
+    if (dateFilter) {
+      const logDate = new Date(log.created_at).toISOString().slice(0, 10);
+      if (logDate !== dateFilter) return false;
+    }
+    
+    return true;
+  });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
     const dateA = new Date(a.created_at).getTime();
@@ -139,10 +181,12 @@ export default function LoginHistoryPage() {
   const safePage = Math.min(currentPage, totalPages);
   const paginated = sortedFiltered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
-  // Reset page when search changes
+  // Reset page and selections when search/filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+    setSelectedLogs(new Set());
+    setIsDeleteMode(false);
+  }, [search, dateFilter]);
 
   return (
     <div className="space-y-6">
@@ -152,9 +196,18 @@ export default function LoginHistoryPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari username, IP, User Agent..." className="pl-12 text-sm" />
+        <div className="relative w-full sm:max-w-md flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-grow">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari username, IP, User Agent..." className="pl-12 text-sm" />
+          </div>
+          <Input 
+            type="date" 
+            value={dateFilter} 
+            onChange={(e) => setDateFilter(e.target.value)} 
+            className="w-full sm:w-auto text-sm" 
+            title="Filter by date"
+          />
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
@@ -164,12 +217,29 @@ export default function LoginHistoryPage() {
             <ArrowUpDown size={18} /> {sortOrder === "desc" ? "Terbaru" : "Terlama"}
           </button>
           {isAdmin() && (
-            <button
-              onClick={handleClearHistory}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
-            >
-              <Trash2 size={18} /> Hapus Riwayat
-            </button>
+            isDeleteMode ? (
+              <>
+                <button
+                  onClick={() => { setIsDeleteMode(false); setSelectedLogs(new Set()); }}
+                  className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleClearHistory}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+                >
+                  <Trash2 size={18} /> {selectedLogs.size > 0 ? `Hapus (${selectedLogs.size})` : "Hapus Semua"}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsDeleteMode(true)}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+              >
+                <Trash2 size={18} /> Hapus Riwayat
+              </button>
+            )
           )}
           <button
             onClick={handleBackup}
@@ -210,14 +280,35 @@ export default function LoginHistoryPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/60">
+                    {isDeleteMode && (
+                      <th className="text-left py-3 px-3 w-10">
+                        <input 
+                          type="checkbox" 
+                          className="rounded border-gray-300 text-[#003399] focus:ring-[#003399]"
+                          checked={paginated.length > 0 && selectedLogs.size === paginated.length}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
+                    )}
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">No</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Waktu</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">User</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-500 text-xs uppercase tracking-wider">Aktivitas</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginated.map((log, index) => (
-                    <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <tr key={log.id} className={`border-b border-gray-50 transition-colors ${selectedLogs.has(log.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50/50'}`}>
+                      {isDeleteMode && (
+                        <td className="py-3 px-3 w-10">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 text-[#003399] focus:ring-[#003399]"
+                            checked={selectedLogs.has(log.id)}
+                            onChange={() => toggleSelectLog(log.id)}
+                          />
+                        </td>
+                      )}
                       <td className="py-3 px-3 w-10">
                         <span className="text-gray-400 text-xs font-mono">
                           {(safePage - 1) * ITEMS_PER_PAGE + index + 1}
@@ -236,6 +327,9 @@ export default function LoginHistoryPage() {
                       </td>
                       <td className="py-3 px-3">
                         <span className="font-semibold text-gray-900">{log.username}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-gray-600 text-sm capitalize">{log.aktivitas || "login"}</span>
                       </td>
                     </tr>
                   ))}

@@ -113,7 +113,6 @@ export default function KegiatanManager() {
             <Input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="mt-1" />
           </div>
         </div>
- 7d4cd65 (update dokumentasi kegiatan)
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
           <Textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1" rows={3} />
@@ -206,13 +205,11 @@ export default function KegiatanManager() {
                   <Textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full" rows={2} />
                   <div className="flex gap-2 mt-2">
                     <Input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="w-48" />
-
                     <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="rounded-md border border-input px-3 py-2 text-sm">
                       <option value="">Pilih kategori</option>
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <Input value={editValues.youtube_url || ''} onChange={e => setEditValues({...editValues, youtube_url: e.target.value})} placeholder="Link YouTube" className="flex-1" />
-7d4cd65 (update dokumentasi kegiatan)
                   </div>
                 </div>
               ) : (

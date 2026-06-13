@@ -40,6 +40,8 @@ export default function BukuTamuPage() {
   const [restoring, setRestoring] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -69,18 +71,52 @@ export default function BukuTamuPage() {
     setCurrentPage(1);
   }, [search, data]);
 
-  const handleDelete = async (id: string) => {
-    const confirm = await showConfirm('Hapus Data?', 'Apakah Anda yakin ingin menghapus data ini?');
+  const handleClearHistory = async () => {
+    const isDeletingSpecific = selectedLogs.size > 0;
+    const confirm = await showConfirm(
+      isDeletingSpecific ? 'Hapus Data Terpilih?' : 'Hapus Semua Data?', 
+      isDeletingSpecific ? `Apakah Anda yakin ingin menghapus ${selectedLogs.size} data terpilih?` : "Apakah Anda yakin ingin menghapus SEMUA data buku tamu? Data yang dihapus tidak dapat dikembalikan."
+    );
     if (!confirm.isConfirmed) return;
 
     try {
-      await fetch(`/api/admin/buku-tamu/${id}`, { method: "DELETE" });
-      setData(data.filter(item => item.id !== id));
-      showSuccess('Berhasil Dihapus', 'Data telah dihapus.');
+      const payload = isDeletingSpecific ? JSON.stringify({ ids: Array.from(selectedLogs) }) : undefined;
+      const res = await fetch("/api/admin/buku-tamu", {
+        method: "DELETE",
+        headers: isDeletingSpecific ? { "Content-Type": "application/json" } : undefined,
+        body: payload
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        showSuccess('Berhasil Dihapus', resData.message || 'Data telah dihapus.');
+        setSelectedLogs(new Set());
+        setIsDeleteMode(false);
+        fetchData();
+      } else {
+        showError('Gagal Menghapus', resData.message || 'Terjadi kesalahan saat menghapus data.');
+      }
     } catch (error) {
       console.error(error);
-      showError('Gagal Menghapus', 'Terjadi kesalahan saat menghapus data.');
+      showError('Gagal Menghapus', 'Terjadi kesalahan koneksi.');
     }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLogs.size === filtered.length && filtered.length > 0) {
+      setSelectedLogs(new Set());
+    } else {
+      setSelectedLogs(new Set(filtered.map(l => l.id)));
+    }
+  };
+
+  const toggleSelectLog = (id: string) => {
+    const newSelected = new Set(selectedLogs);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedLogs(newSelected);
   };
 
   const handleExportPDF = () => {
@@ -236,7 +272,32 @@ export default function BukuTamuPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari berdasarkan nama, email, atau telepon..." className="pl-12 text-sm" />
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {isAdmin() && (
+            isDeleteMode ? (
+              <>
+                <button
+                  onClick={() => { setIsDeleteMode(false); setSelectedLogs(new Set()); }}
+                  className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleClearHistory}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+                >
+                  <Trash2 size={18} /> {selectedLogs.size > 0 ? `Hapus (${selectedLogs.size})` : "Hapus Semua"}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsDeleteMode(true)}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
+              >
+                <Trash2 size={18} /> Hapus Data
+              </button>
+            )
+          )}
           <button
             onClick={handleExportPDF}
             className="flex items-center gap-2 bg-[#003399] hover:bg-[#0044cc] text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm shadow-sm"
@@ -281,21 +342,43 @@ export default function BukuTamuPage() {
                 <table className="w-full text-sm md:text-base">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
-                      <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700 w-16">No.</th>
+                      {isDeleteMode && (
+                        <th className="px-3 md:px-6 py-3 text-left w-10">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 text-[#003399] focus:ring-[#003399]"
+                            checked={filtered.length > 0 && selectedLogs.size === filtered.length}
+                            onChange={toggleSelectAll}
+                          />
+                        </th>
+                      )}
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700">No</th>
                       <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700">Nama</th>
                       <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Email</th>
                       <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Telepon</th>
                       <th className="hidden xl:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Instansi</th>
                       <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Tanggal</th>
-                      <th className="px-3 md:px-6 py-3 text-center text-xs font-semibold text-gray-700">Aksi</th>
+                      {!isDeleteMode && (
+                        <th className="px-3 md:px-6 py-3 text-center text-xs font-semibold text-gray-700">Aksi</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {currentItems.map((item, index) => {
                       const globalIndex = indexOfFirstItem + index + 1;
                       return (
-                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-3 md:px-6 py-4 text-xs md:text-sm font-semibold text-gray-500">{globalIndex}</td>
+                        <tr key={item.id} className={`transition-colors ${selectedLogs.has(item.id) ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
+                          {isDeleteMode && (
+                            <td className="px-3 md:px-6 py-4 w-10">
+                              <input 
+                                type="checkbox" 
+                                className="rounded border-gray-300 text-[#003399] focus:ring-[#003399]"
+                                checked={selectedLogs.has(item.id)}
+                                onChange={() => toggleSelectLog(item.id)}
+                              />
+                            </td>
+                          )}
+                          <td className="px-3 md:px-6 py-4 text-xs md:text-sm text-gray-500 font-mono">{globalIndex}</td>
                           <td className="px-3 md:px-6 py-4 text-xs md:text-sm font-medium text-gray-900">{item.nama}</td>
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600 truncate">{item.email}</td>
                           <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-600">{item.no_telepon}</td>
@@ -303,24 +386,26 @@ export default function BukuTamuPage() {
                           <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600">
                             {new Date(item.created_at).toLocaleDateString("id-ID")}
                           </td>
-                          <td className="px-3 md:px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => setSelectedEntry(item)}
-                                className="p-2 hover:bg-blue-50 text-[#003399] rounded-lg transition-colors"
-                              >
-                                <Eye size={18} />
-                              </button>
-                              {isAdmin() && (
+                          {!isDeleteMode && (
+                            <td className="px-3 md:px-6 py-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
                                 <button
-                                  onClick={() => handleDelete(item.id)}
-                                  className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                  onClick={() => setSelectedEntry(item)}
+                                  className="p-2 hover:bg-blue-50 text-[#003399] rounded-lg transition-colors"
                                 >
-                                  <Trash2 size={18} />
+                                  <Eye size={18} />
                                 </button>
-                              )}
-                            </div>
-                          </td>
+                                {isAdmin() && (
+                                  <button
+                                    onClick={() => handleDelete(item.id)}
+                                    className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

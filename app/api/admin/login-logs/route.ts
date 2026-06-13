@@ -27,7 +27,7 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -36,14 +36,37 @@ export async function DELETE() {
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    // Delete all records by matching a condition that is always true
-    const { error } = await supabase
-      .from("login_logs")
-      .delete()
-      .neq("id", "0");
+    let ids: string[] = [];
+    
+    // Parse JSON body if present
+    try {
+      const body = await request.json();
+      if (body.ids && Array.isArray(body.ids)) {
+        ids = body.ids;
+      }
+    } catch (e) {
+      // Ignore if no body or invalid json
+    }
 
-    if (error) throw error;
-    return NextResponse.json({ success: true, message: "Semua riwayat login berhasil dihapus" });
+    if (ids.length > 0) {
+      // Delete specific records
+      const { error } = await supabase
+        .from("login_logs")
+        .delete()
+        .in("id", ids);
+        
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: "Riwayat login yang dipilih berhasil dihapus" });
+    } else {
+      // Delete all records
+      const { error } = await supabase
+        .from("login_logs")
+        .delete()
+        .neq("id", "0");
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: "Semua riwayat login berhasil dihapus" });
+    }
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });

@@ -28,3 +28,36 @@ export async function GET() {
     return NextResponse.json([], { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !serviceKey) return NextResponse.json({ success: false, message: "Supabase config missing" }, { status: 500 });
+
+    const supabase = createClient(url, serviceKey);
+    let ids: string[] = [];
+    
+    try {
+      const body = await req.json();
+      if (body.ids && Array.isArray(body.ids)) {
+        ids = body.ids;
+      }
+    } catch (e) {
+      // no body
+    }
+
+    if (ids.length > 0) {
+      const { error } = await supabase.from("buku_tamu").delete().in("id", ids);
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: "Data terpilih berhasil dihapus" });
+    } else {
+      const { error } = await supabase.from("buku_tamu").delete().neq("id", "0");
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: "Semua data berhasil dihapus" });
+    }
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
+  }
+}

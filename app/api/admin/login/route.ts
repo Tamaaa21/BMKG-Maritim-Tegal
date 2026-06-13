@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         ip_address: ipAddress,
         user_agent: userAgent,
+        aktivitas: "login",
       });
     } catch (logError) {
       console.error("Failed to record login log:", logError);

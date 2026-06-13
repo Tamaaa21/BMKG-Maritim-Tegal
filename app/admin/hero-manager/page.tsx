@@ -24,6 +24,44 @@ const isVideoUrl = (url: string) => {
 export default function HeroManager() {
   const [images, setImages] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  const moveImageUp = (index: number) => {
+    if (index === 0) return;
+    const newImages = [...images];
+    const temp = newImages[index];
+    newImages[index] = newImages[index - 1];
+    newImages[index - 1] = temp;
+    setImages(newImages);
+  };
+
+  const moveImageDown = (index: number) => {
+    if (index === images.length - 1) return;
+    const newImages = [...images];
+    const temp = newImages[index];
+    newImages[index] = newImages[index + 1];
+    newImages[index + 1] = temp;
+    setImages(newImages);
+  };
+
+  const saveOrder = async () => {
+    setSavingOrder(true);
+    try {
+      await Promise.all(images.map((img, idx) => 
+        fetch(`/api/admin/hero-images/${img.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order_index: idx })
+        })
+      ));
+      showSuccess('Berhasil Disimpan', 'Urutan slider berhasil disimpan!');
+    } catch (e) {
+      console.error(e);
+      showError('Gagal Menyimpan', 'Terjadi kesalahan saat menyimpan urutan.');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,8 +181,21 @@ export default function HeroManager() {
         <div className="divide-y divide-gray-100">
           {images.map((image, idx) => (
             <div key={image.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 group">
-              <div className="text-gray-400 group-hover:text-[#003399] cursor-grab">
-                <GripVertical size={20} />
+              <div className="flex flex-col text-gray-400">
+                <button 
+                  onClick={() => moveImageUp(idx)} 
+                  disabled={idx === 0} 
+                  className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </button>
+                <button 
+                  onClick={() => moveImageDown(idx)} 
+                  disabled={idx === images.length - 1} 
+                  className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
               </div>
               <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 relative">
                 {isVideoUrl(image.url) ? (
@@ -172,14 +223,15 @@ export default function HeroManager() {
 
       {/* Save Button */}
       <div className="flex gap-3 justify-end">
-        <button className="px-6 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
+        <button onClick={() => window.location.reload()} className="px-6 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors">
           Batal
         </button>
         <button 
-          onClick={() => showSuccess('Berhasil Disimpan', 'Perubahan slider berhasil disimpan!')}
-          className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors"
+          onClick={saveOrder}
+          disabled={savingOrder}
+          className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
         >
-          Simpan Perubahan
+          {savingOrder ? 'Menyimpan...' : 'Simpan Perubahan Urutan'}
         </button>
       </div>
     </div>

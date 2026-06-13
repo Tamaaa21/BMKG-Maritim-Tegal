@@ -54,8 +54,9 @@ export const showConfirm = async (title: string, text?: string, confirmText: str
     confirmButtonText: confirmText,
     cancelButtonText: 'Batal',
     customClass: {
-      confirmButton: 'bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors mx-2',
-      cancelButton: 'bg-slate-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-slate-600 transition-colors mx-2'
+      actions: 'gap-5',
+      confirmButton: 'bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors mx-2 ',
+      cancelButton: 'bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-600 transition-colors mx-2'
     },
     buttonsStyling: false
   });

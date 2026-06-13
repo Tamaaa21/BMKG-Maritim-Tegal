@@ -3,22 +3,22 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { 
-  LayoutDashboard, 
-  ImageIcon, 
-  MessageSquare, 
-  FileText, 
-  LogOut, 
-  Menu, 
-  X, 
-  Trash2, 
-  Settings, 
-  Users, 
-  LogIn, 
-  Compass, 
-  Monitor, 
-  Camera, 
-  ConciergeBell, 
+import {
+  LayoutDashboard,
+  ImageIcon,
+  MessageSquare,
+  FileText,
+  LogOut,
+  Menu,
+  X,
+  Trash2,
+  Settings,
+  Users,
+  LogIn,
+  Compass,
+  Monitor,
+  Camera,
+  ConciergeBell,
   Clock,
   Network
 } from "lucide-react";
@@ -80,19 +80,19 @@ const navSections = [
     ]
   },
   {
+    title: "ADMINISTRASI",
+    adminOnly: true,
+    items: [
+      { href: "/admin/users", label: "Manajemen Karyawan", icon: Users },
+    ]
+  },
+  {
     title: "SISTEM",
     items: [
       { href: "/admin/login-history", label: "History Login", icon: Clock },
       { href: "/admin/pengaturan", label: "Pengaturan", icon: Settings },
     ]
   },
-  {
-    title: "ADMINISTRASI",
-    adminOnly: true,
-    items: [
-      { href: "/admin/users", label: "Manajemen Karyawan", icon: Users },
-    ]
-  }
 ];
 
 const ADMIN_ONLY_PATHS = [
@@ -176,7 +176,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       } else {
         let userData: UserInfo | null = null;
         if (storedUser) {
-          try { userData = JSON.parse(storedUser); setUser(userData); } catch {}
+          try { userData = JSON.parse(storedUser); setUser(userData); } catch { }
         }
         setIsLoggedIn(true);
         setLoading(false);
@@ -234,9 +234,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-blue-50/30">
       {/* Sidebar - Light, elegant, professional layout */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#002266] border-r border-blue-900/40 transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden flex flex-col justify-between ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#002266] border-r border-blue-900/40 transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden flex flex-col justify-between ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Sidebar Brand Header */}
@@ -270,11 +269,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         <Link
                           key={item.href}
                           href={item.href}
-                          className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all text-xs font-semibold ${
-                            isActive
+                          className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all text-xs font-semibold ${isActive
                               ? "bg-white/10 text-white border-l-4 border-blue-400 pl-2 rounded-l-none font-bold"
                               : "text-blue-200/90 hover:bg-white/5 hover:text-white"
-                          }`}
+                            }`}
                         >
                           <Icon size={16} className={`flex-shrink-0 ${isActive ? "text-blue-300" : "text-blue-400/80"}`} />
                           <span>{item.label}</span>
