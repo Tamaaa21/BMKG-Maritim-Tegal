@@ -37,10 +37,19 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
   const showScrolledBg = false; // Always blue background, matching other pages
   
   const [timeString, setTimeString] = useState("");
+  const [dateString, setDateString] = useState("");
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      };
+      setDateString(now.toLocaleDateString('id-ID', options));
+
       const hours = String(now.getHours()).padStart(2, "0");
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const seconds = String(now.getSeconds()).padStart(2, "0");
@@ -92,10 +101,13 @@ export default function Navbar({ minimal = false }: { minimal?: boolean }) {
           {/* Right Actions */}
           {!minimal && (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-mono text-blue-100 border border-blue-300/40 rounded-full bg-blue-900/30">
-                <Clock size={12} className="text-blue-300" />
+              <div className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-mono text-blue-100 border border-blue-300/40 rounded-full bg-blue-900/30">
+                <Clock size={14} className="text-blue-300" />
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></span>
-                <span>{timeString || "--:--:-- WIB"}</span>
+                <span>
+                  {isHome && dateString ? `${dateString} | ` : ""}
+                  {timeString || "--:--:-- WIB"}
+                </span>
               </div>
               <button
                 className="md:hidden p-2 text-blue-100 hover:text-white"

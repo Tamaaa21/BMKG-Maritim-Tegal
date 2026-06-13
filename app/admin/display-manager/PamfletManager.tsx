@@ -17,6 +17,25 @@ function isAdmin() {
   return role === "admin" || role === "super_admin";
 }
 
+const isVideoUrl = (url: string) => {
+  return !!(url && (url.match(/\.(mp4|webm|ogg|mov|mkv|avi|3gp|flv|wmv)/i) || url.includes("video")));
+};
+
+const getYoutubeEmbedUrl = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    const videoId = match[2];
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0&showinfo=0&iv_load_policy=3`;
+  }
+  return null;
+};
+
+const isYoutubeUrl = (url: string) => {
+  return !!getYoutubeEmbedUrl(url);
+};
+
 export default function PamfletManager() {
   const [items, setItems] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -89,16 +108,16 @@ export default function PamfletManager() {
           <label className="flex items-center gap-3 p-3 border-2 border-dashed border-gray-300 hover:border-[#003399] rounded-xl cursor-pointer transition-colors hover:bg-blue-50/30">
             <Upload className="text-gray-400 flex-shrink-0" size={18} />
             <span className="text-sm text-gray-600 truncate">
-              {file ? file.name : 'Pilih file gambar untuk diunggah'}
+              {file ? file.name : 'Pilih file gambar/video untuk diunggah'}
             </span>
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
+            <input type="file" accept="image/*,video/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
           </label>
 
           {/* URL Input */}
           <Input
             value={addingUrl}
             onChange={e => setAddingUrl(e.target.value)}
-            placeholder="Atau tempel URL gambar"
+            placeholder="Atau tempel URL gambar/video"
           />
         </div>
 
@@ -128,7 +147,20 @@ export default function PamfletManager() {
             const isExpired = it.waktu_berakhir && new Date(it.waktu_berakhir) < new Date();
             return (
               <div key={it.id} className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm group">
-                <img src={it.url} alt={it.title} className="w-full h-36 object-cover" />
+                {isYoutubeUrl(it.url) ? (
+                  <div className="w-full h-36 bg-black relative">
+                    <iframe
+                      src={getYoutubeEmbedUrl(it.url) || ""}
+                      className="w-full h-full border-none pointer-events-none"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                    <div className="absolute inset-0 bg-transparent" />
+                  </div>
+                ) : isVideoUrl(it.url) ? (
+                  <video src={it.url} className="w-full h-36 object-cover bg-black" muted />
+                ) : (
+                  <img src={it.url} alt={it.title} className="w-full h-36 object-cover" />
+                )}
                 {/* Expired badge */}
                 {isExpired && (
                   <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">

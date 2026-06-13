@@ -7,7 +7,7 @@ const footerLinks = {
   Menu: [
     { label: "Home", href: "/" },
     { label: "About", href: "/about" },
-    { label: "Publikasi", href: "/kegiatan" },
+    { label: "Publikasi", href: "/#buletin" },
     { label: "Info Prakiraan & Informasi", href: "/prakiraan" },
     { label: "Layanan", href: "/layanan" },
     { label: "Kegiatan", href: "/kegiatan" },
@@ -19,7 +19,7 @@ const footerLinks = {
     { label: "Pasang Surut", href: "/prakiraan" },
     { label: "Kalender Maritim", href: "/prakiraan" },
     { label: "Berita & Artikel", href: "/kegiatan" },
-    { label: "Publikasi", href: "/kegiatan" },
+    { label: "Publikasi", href: "/#buletin" },
   ],
   Layanan: [
     { label: "Cuaca Maritim", href: "/prakiraan" },
@@ -88,13 +88,14 @@ export default function Footer() {
                   <ul className="space-y-2">
                     {links.map((link) => {
                       const isExternal = link.href.startsWith("http");
+                      const isHomeLink = link.label === "Home";
                       return (
                         <li key={link.label}>
-                          {isExternal ? (
+                          {isExternal || isHomeLink ? (
                             <a
                               href={link.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              target={isExternal ? "_blank" : undefined}
+                              rel={isExternal ? "noopener noreferrer" : undefined}
                               className="text-blue-300 text-xs hover:text-white transition-colors"
                             >
                               {link.label}

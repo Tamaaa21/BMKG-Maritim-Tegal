@@ -90,15 +90,7 @@ export default function KegiatanManager() {
             <Input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="mt-1" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Kategori</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 block w-full rounded-md border border-input px-3 py-2 text-sm">
-              <option value="">Pilih kategori</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
+
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700">Deskripsi</label>
           <Textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1" rows={3} />
@@ -179,10 +171,7 @@ export default function KegiatanManager() {
                   <Textarea value={editValues.description || ''} onChange={e => setEditValues({...editValues, description: e.target.value})} className="w-full" rows={2} />
                   <div className="flex gap-2 mt-2">
                     <Input type="date" value={editValues.event_date || ''} onChange={e => setEditValues({...editValues, event_date: e.target.value})} className="w-48" />
-                    <select value={editValues.category || ''} onChange={e => setEditValues({...editValues, category: e.target.value})} className="rounded-md border border-input px-3 py-2 text-sm">
-                      <option value="">Pilih kategori</option>
-                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    {/* Kategori dropdown removed */}
                   </div>
                 </div>
               ) : (

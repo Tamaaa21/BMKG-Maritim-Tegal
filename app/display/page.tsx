@@ -20,7 +20,9 @@ import {
   CloudLightning,
   CloudRain,
   Cloud,
-  Sun
+  Sun,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 
 interface WeatherData {
@@ -52,6 +54,24 @@ interface GempaData {
   Shakemap: string;
 }
 
+const isVideoUrl = (url: string) => {
+  return !!(url && (url.match(/\.(mp4|webm|ogg|mov|mkv|avi|3gp|flv|wmv)/i) || url.includes("video")));
+};
+
+const getYoutubeVideoId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return match[2];
+  }
+  return null;
+};
+
+const isYoutubeUrl = (url: string) => {
+  return !!getYoutubeVideoId(url);
+};
+
 export default function DisplayPage() {
   const [pamphletImages, setPamphletImages] = useState<string[]>([]);
   const [pamphletIndex, setPamphletIndex] = useState(0);
@@ -59,6 +79,12 @@ export default function DisplayPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mute & Volume State (sound starts off by default: isMuted=true)
+  const [isMuted, setIsMuted] = useState(true);
+  const [volume, setVolume] = useState(50);
+  const ytPlayerRef = useRef<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Time & Date State for Header Clock
   const [timeString, setTimeString] = useState("");
@@ -158,11 +184,19 @@ export default function DisplayPage() {
   // Pamphlet Slideshow Loop
   useEffect(() => {
     if (!isPlaying || !pamphletImages || pamphletImages.length <= 1) return;
+    
+    const currentUrl = pamphletImages[pamphletIndex];
+    const isVideo = isVideoUrl(currentUrl) || isYoutubeUrl(currentUrl);
+    
+    // If it's a video, do not advance automatically after 15 seconds.
+    // The video's own onEnded event will handle the transition.
+    if (isVideo) return;
+
     const t = setInterval(() => {
       setPamphletIndex((s) => (s + 1) % pamphletImages.length);
     }, 15000);
     return () => clearInterval(t);
-  }, [pamphletImages, isPlaying]);
+  }, [pamphletImages, pamphletIndex, isPlaying]);
 
   const handlePrev = () => {
     if (pamphletImages.length === 0) return;
@@ -173,6 +207,122 @@ export default function DisplayPage() {
     if (pamphletImages.length === 0) return;
     setPamphletIndex((s) => (s + 1) % pamphletImages.length);
   };
+
+  // Load YouTube Iframe API Script on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && !(window as any).YT) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
+
+  // YouTube Player Instance for tracking video ENDED state
+  useEffect(() => {
+    if (!pamphletImages || pamphletImages.length === 0) return;
+    const currentUrl = pamphletImages[pamphletIndex];
+    if (!isYoutubeUrl(currentUrl)) return;
+
+    const videoId = getYoutubeVideoId(currentUrl);
+    if (!videoId) return;
+
+    let player: any = null;
+
+    const onPlayerStateChange = (event: any) => {
+      // event.data === 0 means YT.PlayerState.ENDED
+      if (event.data === 0) {
+        handleNext();
+      }
+    };
+
+    const initPlayer = () => {
+      try {
+        player = new (window as any).YT.Player("youtube-player", {
+          width: "100%",
+          height: "100%",
+          videoId: videoId,
+          playerVars: {
+            autoplay: 1,
+            mute: isMuted ? 1 : 0, // apply initial state
+            controls: 0,
+            rel: 0,
+            loop: 0, // do not loop so we can detect ended event
+            playlist: videoId,
+            showinfo: 0,
+            iv_load_policy: 3,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1
+          },
+          events: {
+            onStateChange: onPlayerStateChange,
+            onReady: (e: any) => {
+              ytPlayerRef.current = e.target;
+              if (isMuted) {
+                e.target.mute();
+              } else {
+                e.target.unMute();
+                e.target.setVolume(volume);
+              }
+              e.target.playVideo();
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Gagal inisialisasi YouTube Player:", err);
+      }
+    };
+
+    if ((window as any).YT && (window as any).YT.Player) {
+      initPlayer();
+    } else {
+      const checkInterval = setInterval(() => {
+        if ((window as any).YT && (window as any).YT.Player) {
+          initPlayer();
+          clearInterval(checkInterval);
+        }
+      }, 500);
+      return () => {
+        clearInterval(checkInterval);
+        if (player && player.destroy) {
+          player.destroy();
+        }
+      };
+    }
+
+    return () => {
+      if (player && player.destroy) {
+        try {
+          player.destroy();
+        } catch (e) {}
+      }
+      ytPlayerRef.current = null;
+    };
+  }, [pamphletImages, pamphletIndex]);
+
+  // Synchronize mute/volume state changes dynamically to active players
+  useEffect(() => {
+    // Sync to Native Video
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.volume = volume / 100;
+    }
+    
+    // Sync to YouTube Player
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === "function") {
+      try {
+        if (isMuted) {
+          ytPlayerRef.current.mute();
+        } else {
+          ytPlayerRef.current.unMute();
+          ytPlayerRef.current.setVolume(volume);
+        }
+      } catch (e) {
+        console.error("Failed to sync volume to YT player:", e);
+      }
+    }
+  }, [isMuted, volume, pamphletIndex]);
 
   const togglePlay = () => setIsPlaying(!isPlaying);
 
@@ -294,12 +444,28 @@ export default function DisplayPage() {
               </div>
             ) : pamphletImages.length > 0 ? (
               <>
-                {/* Slide image rendered directly - wraps borders to image dimensions */}
-                <img
-                  src={pamphletImages[pamphletIndex]}
-                  alt={`Display ${pamphletIndex + 1}`}
-                  className="h-full w-auto object-contain max-w-full max-h-full transition-all duration-300 shadow-inner rounded-3xl"
-                />
+                {/* Slide image/video/YouTube rendered directly - wraps borders to image dimensions */}
+                {isYoutubeUrl(pamphletImages[pamphletIndex]) ? (
+                  <div className="w-full h-full bg-black flex items-center justify-center rounded-3xl overflow-hidden relative shadow-inner">
+                    <div id="youtube-player" className="w-full h-full" />
+                  </div>
+                ) : isVideoUrl(pamphletImages[pamphletIndex]) ? (
+                  <video
+                    ref={videoRef}
+                    src={pamphletImages[pamphletIndex]}
+                    className="h-full w-auto object-contain max-w-full max-h-full transition-all duration-300 shadow-inner rounded-3xl"
+                    autoPlay
+                    muted={isMuted}
+                    onEnded={handleNext}
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={pamphletImages[pamphletIndex]}
+                    alt={`Display ${pamphletIndex + 1}`}
+                    className="h-full w-auto object-contain max-w-full max-h-full transition-all duration-300 shadow-inner rounded-3xl"
+                  />
+                )}
 
                 {/* Left/Right Slide Buttons positioned at the middle sides */}
                 <button
@@ -341,6 +507,34 @@ export default function DisplayPage() {
                         className={`h-1.5 rounded-full transition-all duration-300 ${idx === pamphletIndex ? "bg-white w-4" : "bg-white/20 hover:bg-white/40 w-1.5"}`}
                       />
                     ))}
+                  </div>
+
+                  {/* Volume Control Panel */}
+                  <div className="flex items-center gap-2 border-l border-white/20 pl-4">
+                    <button
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all"
+                      title={isMuted ? "Aktifkan Suara" : "Senyapkan Suara"}
+                    >
+                      {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                    </button>
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={volume}
+                      onChange={(e) => setVolume(Number(e.target.value))}
+                      className="w-16 h-1 bg-white/25 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                      style={{
+                        WebkitAppearance: "none",
+                        outline: "none"
+                      }}
+                      title={`Volume: ${volume}%`}
+                    />
+                    <span className="text-[10px] text-white/80 font-mono w-6 text-right">
+                      {volume}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1.5">

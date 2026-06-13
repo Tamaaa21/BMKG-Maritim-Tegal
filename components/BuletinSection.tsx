@@ -30,7 +30,7 @@ export default function BuletinSection() {
   if (loading || !buletin) return null;
 
   return (
-    <section className="py-20 bg-white relative overflow-hidden">
+    <section id="buletin" className="py-20 bg-white relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
         <div className="flex flex-col md:flex-row items-center gap-12">
           {/* Left Side: Cover Image inside a minimalist frame */}

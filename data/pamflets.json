@@ -28,10 +28,17 @@
     "uploader": "admin"
   },
   {
-    "id": "1780919638838",
-    "url": "/uploads/pamflets/pamflet-1780919638837-aa.jpeg",
+    "id": "1781322788591",
+    "url": "https://youtu.be/MlMYOdArjXA?si=Ne8ZPJyE8jtFCmuK",
     "title": "Pamflet",
     "order": 5,
+    "uploader": "admin"
+  },
+  {
+    "id": "1781323680051",
+    "url": "https://youtu.be/Z1RJzADXo0o?si=z8e1decfz-2J9H6x",
+    "title": "Pamflet",
+    "order": 6,
     "uploader": "admin"
   }
 ]

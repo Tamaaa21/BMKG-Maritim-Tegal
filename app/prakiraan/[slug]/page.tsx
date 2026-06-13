@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Calendar, User, AlertCircle, Clock, Loader, MapPin, Anchor, Waves, TrendingUp, Sun, Image } from "lucide-react";
+import { ArrowLeft, Calendar, User, AlertCircle, Clock, Loader, MapPin, Anchor, Waves, TrendingUp, Sun, Image, ChevronLeft, ChevronRight } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, any> = {
   MapPin, Anchor, Waves, TrendingUp, Sun,
@@ -131,18 +131,41 @@ export default function PrakiraanDetailPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="relative w-full bg-gray-100 flex items-center justify-center" style={{ minHeight: "60vh" }}>
                 <img
-                  src={data.url}
+                  src={allImages[activeImg]}
                   alt={data.title}
                   className="w-full h-full object-contain p-4 md:p-8"
                   style={{ maxHeight: "80vh" }}
                 />
+                
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImg((prev) => (prev - 1 + allImages.length) % allImages.length)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-all border border-white/10 active:scale-95 z-20 shadow-md"
+                      title="Sebelumnya"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <button
+                      onClick={() => setActiveImg((prev) => (prev + 1) % allImages.length)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-all border border-white/10 active:scale-95 z-20 shadow-md"
+                      title="Selanjutnya"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                    <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                      {activeImg + 1} / {allImages.length}
+                    </div>
+                  </>
+                )}
+
                 {data.category && (
-                  <div className="absolute top-5 left-5 bg-white/80 backdrop-blur-sm text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
+                  <div className="absolute top-5 left-5 bg-white/80 backdrop-blur-sm text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full shadow flex items-center gap-1.5 z-10">
                     {CategoryIcon && <CategoryIcon size={12} />}
                     {data.category.name}
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6 md:p-8">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6 md:p-8 z-10">
                   <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight drop-shadow-lg max-w-3xl">
                     {data.title}
                   </h1>
@@ -183,10 +206,59 @@ export default function PrakiraanDetailPage() {
                 </h1>
               </div>
 
-              {/* Two-column layout: Text Left, Image Right */}
-              <div className="flex flex-col-reverse md:flex-row gap-0">
-                {/* LEFT: Explanation */}
-                <div className="flex-1 md:w-[58%] p-6 md:p-10 lg:p-12">
+              {/* Stacked layout: Image on top, explanation below */}
+              <div className="flex flex-col">
+                {/* TOP: Image & Gallery Slider */}
+                <div className="w-full bg-gray-50 border-b border-gray-100 p-4 md:p-8 flex flex-col items-center">
+                  <div className="relative w-full max-w-4xl rounded-2xl overflow-hidden bg-white shadow-md border border-gray-200 flex items-center justify-center" style={{ minHeight: "400px", aspectRatio: "16/9" }}>
+                    <img
+                      src={allImages[activeImg]}
+                      alt={data.title}
+                      className="w-full h-full object-contain p-4 md:p-6"
+                      style={{ maxHeight: "60vh", margin: "0 auto" }}
+                    />
+                    {allImages.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setActiveImg((prev) => (prev - 1 + allImages.length) % allImages.length)}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-all border border-white/10 active:scale-95 z-20 shadow-md"
+                          title="Sebelumnya"
+                        >
+                          <ChevronLeft size={24} />
+                        </button>
+                        <button
+                          onClick={() => setActiveImg((prev) => (prev + 1) % allImages.length)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-black/30 hover:bg-black/50 text-white rounded-full flex items-center justify-center transition-all border border-white/10 active:scale-95 z-20 shadow-md"
+                          title="Selanjutnya"
+                        >
+                          <ChevronRight size={24} />
+                        </button>
+                        <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                          {activeImg + 1} / {allImages.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Gallery thumbnails below image */}
+                  {showGallery && allImages.length > 1 && (
+                    <div className="flex gap-2 mt-4 overflow-x-auto justify-center max-w-full pb-2">
+                      {allImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setActiveImg(idx)}
+                          className={`w-16 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImg === idx ? "border-[#003399] shadow-md scale-105" : "border-gray-200 opacity-60 hover:opacity-100"
+                            }`}
+                        >
+                          <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* BOTTOM: Explanation and Meta Info */}
+                <div className="w-full max-w-4xl mx-auto p-6 md:p-10 lg:p-12">
                   {/* Status info boxes */}
                   {isScheduled && (
                     <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
@@ -217,11 +289,9 @@ export default function PrakiraanDetailPage() {
                     </div>
                   )}
 
-
-
                   {/* Explanation */}
                   {showText && (
-                    <div>
+                    <div className="mb-8">
                       <h2 className="text-lg font-bold text-gray-900 mb-4">Penjelasan Detail</h2>
                       {data.explanation ? (
                         <div
@@ -237,19 +307,7 @@ export default function PrakiraanDetailPage() {
                   )}
 
                   {/* Meta info bar */}
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm mb-6">
-                    {/* {data.uploader && (
-                      <span className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
-                        <User size={14} className="text-gray-400" />
-                        {data.uploader}
-                      </span>
-                    )} */}
-                    {/* {data.created_at && (
-                      <span className="flex items-center gap-2 text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
-                        <Calendar size={14} className="text-gray-400" />
-                        {new Date(data.created_at).toLocaleDateString("id-ID", { dateStyle: "long" })}
-                      </span>
-                    )} */}
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm mb-8 pb-6 border-b border-gray-150">
                     {data.waktu_mulai && (
                       <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isScheduled ? "bg-blue-50 text-blue-600" : "bg-gray-50 text-gray-500"
                         }`}>
@@ -266,27 +324,6 @@ export default function PrakiraanDetailPage() {
                       </span>
                     )}
                   </div>
-                  {/* Gallery grid for gambar_galeri */}
-                  {showGallery && uniqueGalleryImages.length > 0 && (
-                    <div className="mt-8">
-                      <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Image size={18} />
-                        Galeri Foto
-                      </h2>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {uniqueGalleryImages.map((img, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveImg(idx + 1)}
-                            className={`aspect-video rounded-xl overflow-hidden border-2 transition-all ${activeImg === idx + 1 ? "border-[#003399] ring-2 ring-[#003399]/30" : "border-gray-200 hover:border-gray-300"
-                              }`}
-                          >
-                            <img src={img} alt={`${data.title} ${idx + 2}`} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Next Forecast Section */}
                   {showNextForecast && (
@@ -333,48 +370,6 @@ export default function PrakiraanDetailPage() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* RIGHT: Image */}
-                <div className="md:w-[42%] bg-gray-50 border-l border-gray-100">
-                  <div className="sticky top-24 p-4 md:p-6">
-                    <div className="relative w-full rounded-xl overflow-hidden bg-white shadow-sm border border-gray-100" style={{ minHeight: "400px" }}>
-                      <img
-                        src={allImages[activeImg]}
-                        alt={data.title}
-                        className="w-full h-full object-contain p-4"
-                        style={{ maxHeight: "500px", margin: "0 auto" }}
-                      />
-                      {showGallery && allImages.length > 1 && (
-                        <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                          {activeImg + 1} / {allImages.length}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Gallery thumbnails below image */}
-                    {showGallery && uniqueGalleryImages.length > 0 && (
-                      <div className="flex gap-2 mt-3 overflow-x-auto">
-                        <button
-                          onClick={() => setActiveImg(0)}
-                          className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImg === 0 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
-                            }`}
-                        >
-                          <img src={data.url} alt="Utama" className="w-full h-full object-cover" />
-                        </button>
-                        {uniqueGalleryImages.map((img, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setActiveImg(idx + 1)}
-                            className={`w-14 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${activeImg === idx + 1 ? "border-[#003399] shadow-md" : "border-gray-200 opacity-60 hover:opacity-100"
-                              }`}
-                          >
-                            <img src={img} alt={`${idx + 2}`} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 

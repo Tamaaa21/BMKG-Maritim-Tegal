@@ -37,6 +37,8 @@ export default function BukuTamuPage() {
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<BukuTamuEntry | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchData();
@@ -63,6 +65,7 @@ export default function BukuTamuPage() {
         item.no_telepon.includes(search)
     );
     setFiltered(filtered);
+    setCurrentPage(1);
   }, [search, data]);
 
   const handleDelete = async (id: string) => {
@@ -262,51 +265,102 @@ export default function BukuTamuPage() {
             Tidak ada data ditemukan
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm md:text-base">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700">Nama</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Email</th>
-                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Telepon</th>
-                  <th className="hidden xl:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Instansi</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Tanggal</th>
-                  <th className="px-3 md:px-6 py-3 text-center text-xs font-semibold text-gray-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 md:px-6 py-4 text-xs md:text-sm font-medium text-gray-900">{item.nama}</td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600 truncate">{item.email}</td>
-                    <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-600">{item.no_telepon}</td>
-                    <td className="hidden xl:table-cell px-6 py-4 text-sm text-gray-600">{item.instansi || "-"}</td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600">
-                      {new Date(item.created_at).toLocaleDateString("id-ID")}
-                    </td>
-                    <td className="px-3 md:px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+          (() => {
+            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+            const indexOfLastItem = currentPage * itemsPerPage;
+            const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+            const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
+            
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm md:text-base">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700 w-16">No.</th>
+                      <th className="px-3 md:px-6 py-3 text-left text-xs font-semibold text-gray-700">Nama</th>
+                      <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Email</th>
+                      <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Telepon</th>
+                      <th className="hidden xl:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Instansi</th>
+                      <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-700">Tanggal</th>
+                      <th className="px-3 md:px-6 py-3 text-center text-xs font-semibold text-gray-700">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {currentItems.map((item, index) => {
+                      const globalIndex = indexOfFirstItem + index + 1;
+                      return (
+                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 md:px-6 py-4 text-xs md:text-sm font-semibold text-gray-500">{globalIndex}</td>
+                          <td className="px-3 md:px-6 py-4 text-xs md:text-sm font-medium text-gray-900">{item.nama}</td>
+                          <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600 truncate">{item.email}</td>
+                          <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-600">{item.no_telepon}</td>
+                          <td className="hidden xl:table-cell px-6 py-4 text-sm text-gray-600">{item.instansi || "-"}</td>
+                          <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-600">
+                            {new Date(item.created_at).toLocaleDateString("id-ID")}
+                          </td>
+                          <td className="px-3 md:px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => setSelectedEntry(item)}
+                                className="p-2 hover:bg-blue-50 text-[#003399] rounded-lg transition-colors"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {isAdmin() && (
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-100 gap-4">
+                    <div className="text-xs md:text-sm text-gray-500">
+                      Menampilkan <span className="font-semibold">{indexOfFirstItem + 1}</span> - <span className="font-semibold">{Math.min(indexOfLastItem, filtered.length)}</span> dari <span className="font-semibold">{filtered.length}</span> data
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Sebelumnya
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <button
-                          onClick={() => setSelectedEntry(item)}
-                          className="p-2 hover:bg-blue-50 text-[#003399] rounded-lg transition-colors"
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1.5 border rounded-lg text-xs md:text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? "bg-[#003399] border-[#003399] text-white"
+                              : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                          }`}
                         >
-                          <Eye size={18} />
+                          {page}
                         </button>
-                        {isAdmin() && (
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      ))}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Selanjutnya
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()
         )}
       </div>
 
