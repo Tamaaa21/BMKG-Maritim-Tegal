@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Play, 
-  Pause, 
-  Maximize2, 
-  Minimize2, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+  Maximize2,
+  Minimize2,
   Loader,
-  Thermometer, 
-  Droplets, 
-  Wind, 
-  Waves, 
-  Activity, 
-  MapPin, 
-  Clock, 
+  Thermometer,
+  Droplets,
+  Wind,
+  Waves,
+  Activity,
+  MapPin,
+  Clock,
   Calendar,
   CloudLightning,
   CloudRain,
@@ -59,10 +59,23 @@ const isVideoUrl = (url: string) => {
 
 const getYoutubeVideoId = (url: string) => {
   if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return match[2];
+  let videoId: string | null = null;
+  
+  if (url.includes('/shorts/')) {
+    const parts = url.split('/shorts/');
+    if (parts[1]) {
+      videoId = parts[1].split(/[?&#]/)[0];
+    }
+  } else {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      videoId = match[2];
+    }
+  }
+
+  if (videoId && videoId.length === 11) {
+    return videoId;
   }
   return null;
 };
@@ -183,10 +196,10 @@ export default function DisplayPage() {
   // Pamphlet Slideshow Loop
   useEffect(() => {
     if (!isPlaying || !pamphletImages || pamphletImages.length <= 1) return;
-    
+
     const currentUrl = pamphletImages[pamphletIndex];
     const isVideo = isVideoUrl(currentUrl) || isYoutubeUrl(currentUrl);
-    
+
     // If it's a video, do not advance automatically after 15 seconds.
     // The video's own onEnded event will handle the transition.
     if (isVideo) return;
@@ -294,7 +307,7 @@ export default function DisplayPage() {
       if (player && player.destroy) {
         try {
           player.destroy();
-        } catch (e) {}
+        } catch (e) { }
       }
       ytPlayerRef.current = null;
     };
@@ -307,7 +320,7 @@ export default function DisplayPage() {
       videoRef.current.muted = isMuted;
       videoRef.current.volume = volume / 100;
     }
-    
+
     // Sync to YouTube Player
     if (ytPlayerRef.current && typeof ytPlayerRef.current.setVolume === "function") {
       try {
@@ -358,9 +371,10 @@ export default function DisplayPage() {
 
   return (
     <main className="h-screen w-screen bg-[#f8fafc] text-slate-800 flex flex-col overflow-y-auto md:overflow-hidden select-none">
-      
+
       {/* CSS Keyframes for smooth rotating border glow */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes border-spin {
           from {
             transform: translate(-50%, -50%) rotate(0deg);
@@ -370,7 +384,7 @@ export default function DisplayPage() {
           }
         }
       `}} />
-      
+
       {/* ───── Custom Blue Dashboard Header ───── */}
       <header className="h-16 shrink-0 bg-[#003399] text-white px-6 md:px-8 flex items-center justify-between shadow-lg z-20">
         <div className="flex items-center gap-3">
@@ -409,7 +423,7 @@ export default function DisplayPage() {
             <>
               {/* Sharp border light track */}
               <div className="absolute inset-0 rounded-[28px] overflow-hidden pointer-events-none z-0">
-                <div 
+                <div
                   className="absolute top-1/2 left-1/2 w-[250%] h-[250%]"
                   style={{
                     background: 'conic-gradient(from 0deg, transparent 30%, #00d2ff 45%, #3b82f6 50%, #003399 55%, transparent 70%)',
@@ -419,7 +433,7 @@ export default function DisplayPage() {
               </div>
               {/* Soft blur overlay shadow */}
               <div className="absolute inset-0 rounded-[28px] overflow-hidden pointer-events-none blur-xl opacity-40 z-0">
-                <div 
+                <div
                   className="absolute top-1/2 left-1/2 w-[250%] h-[250%]"
                   style={{
                     background: 'conic-gradient(from 0deg, transparent 30%, #00d2ff 45%, #3b82f6 50%, #003399 55%, transparent 70%)',
@@ -432,9 +446,8 @@ export default function DisplayPage() {
 
           <div
             ref={containerRef}
-            className={`relative rounded-3xl overflow-hidden bg-white border border-slate-200/80 shadow-md h-full w-full flex justify-center items-center group transition-all duration-300 z-10 ${
-              isFullscreen ? "rounded-none border-none max-w-none w-screen h-screen aspect-auto" : ""
-            }`}
+            className={`relative rounded-3xl overflow-hidden bg-white border border-slate-200/80 shadow-md h-full w-full flex justify-center items-center group transition-all duration-300 z-10 ${isFullscreen ? "rounded-none border-none max-w-none w-screen h-screen aspect-auto" : ""
+              }`}
           >
             {loading ? (
               <div className="flex flex-col items-center gap-3 px-12">
@@ -485,8 +498,8 @@ export default function DisplayPage() {
                 {/* Bottom Overlay Controls (Minimalist & Transparent) */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/30 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-6 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 z-10 shadow-lg">
                   <div className="flex items-center gap-3">
-                    <button 
-                      onClick={togglePlay} 
+                    <button
+                      onClick={togglePlay}
                       className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white active:scale-95 rounded-full flex items-center justify-center transition-all"
                       title={isPlaying ? "Jeda" : "Putar"}
                     >
@@ -500,8 +513,8 @@ export default function DisplayPage() {
 
                   <div className="hidden md:flex items-center gap-1.5">
                     {pamphletImages.map((_, idx) => (
-                      <button 
-                        key={idx} 
+                      <button
+                        key={idx}
                         onClick={() => setPamphletIndex(idx)}
                         className={`h-1.5 rounded-full transition-all duration-300 ${idx === pamphletIndex ? "bg-white w-4" : "bg-white/20 hover:bg-white/40 w-1.5"}`}
                       />
@@ -517,7 +530,7 @@ export default function DisplayPage() {
                     >
                       {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
                     </button>
-                    
+
                     <input
                       type="range"
                       min="0"
@@ -537,9 +550,9 @@ export default function DisplayPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <button 
-                      onClick={toggleFullscreen} 
-                      className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all" 
+                    <button
+                      onClick={toggleFullscreen}
+                      className="w-7 h-7 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all"
                       title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
                     >
                       {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
@@ -568,7 +581,6 @@ export default function DisplayPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-extrabold text-slate-850 text-sm md:text-base leading-tight">Cuaca Kota Tegal</h3>
-                  <p className="text-[9px] text-slate-400 mt-0.5">Prakiraan Cuaca Kelurahan Pesurungan Kidul</p>
                 </div>
                 {weather && (
                   <div className="p-1.5 bg-blue-50 rounded-xl text-blue-600 border border-blue-100 shadow-inner">
@@ -634,11 +646,10 @@ export default function DisplayPage() {
                   <p className="text-[9px] text-slate-400 mt-0.5">BMKG TEWS Nasional (M ≥ 5.0)</p>
                 </div>
                 {gempa && (
-                  <div className={`p-1.5 rounded-xl border shadow-inner shrink-0 ${
-                    gempa.Potensi.toLowerCase().includes("tidak berpotensi") 
-                      ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                  <div className={`p-1.5 rounded-xl border shadow-inner shrink-0 ${gempa.Potensi.toLowerCase().includes("tidak berpotensi")
+                      ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                       : "bg-red-50 text-red-600 border-red-100 animate-pulse"
-                  }`}>
+                    }`}>
                     <Activity size={16} />
                   </div>
                 )}
@@ -653,9 +664,9 @@ export default function DisplayPage() {
                 <div className="mt-3 flex flex-col sm:flex-row gap-4 items-stretch flex-1 min-h-0">
                   {/* Visual Shakemap Image (Capped size to prevent overflow) */}
                   <div className="h-32 sm:h-36 aspect-square bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative self-center">
-                    <img 
-                      src={`https://data.bmkg.go.id/DataMKG/TEWS/${encodeURIComponent(gempa.Shakemap)}`} 
-                      alt="Shakemap" 
+                    <img
+                      src={`https://data.bmkg.go.id/DataMKG/TEWS/${encodeURIComponent(gempa.Shakemap)}`}
+                      alt="Shakemap"
                       className="w-full h-full object-contain"
                       onError={(e) => {
                         (e.target as HTMLElement).style.display = 'none';
@@ -719,11 +730,10 @@ export default function DisplayPage() {
             {gempa && (
               <div className="space-y-1 shrink-0 mt-1">
                 {/* Tsunami Potency */}
-                <div className={`p-1.5 rounded-xl text-[9px] font-bold text-center border ${
-                  gempa.Potensi.toLowerCase().includes("tidak berpotensi")
+                <div className={`p-1.5 rounded-xl text-[9px] font-bold text-center border ${gempa.Potensi.toLowerCase().includes("tidak berpotensi")
                     ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                     : "bg-red-50 text-red-700 border-red-150 animate-pulse"
-                }`}>
+                  }`}>
                   <span className="uppercase text-[7px] tracking-wider block opacity-75 leading-none mb-0.5">Potensi Ancaman</span>
                   {gempa.Potensi}
                 </div>

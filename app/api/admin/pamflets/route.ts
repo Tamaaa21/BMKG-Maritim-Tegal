@@ -15,7 +15,9 @@ function ensureStorage() {
 export async function GET() {
   ensureStorage();
   const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  const list = JSON.parse(raw || '[]');
+  let list = JSON.parse(raw || '[]');
+  // sort list by order (ascending)
+  list.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
   return new Response(JSON.stringify({ success: true, data: list }), { status: 200 });
 }
 
@@ -75,6 +77,82 @@ export async function DELETE(req: NextRequest) {
   list = list.map((it: any, i: number) => ({ ...it, order: i + 1 }));
   fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
   return new Response(JSON.stringify({ success: true }), { status: 200 });
+}
+
+export async function PATCH(req: NextRequest) {
+  ensureStorage();
+  try {
+    const body = await req.json();
+
+    // Support bulk reordering for drag and drop
+    if (body.items && Array.isArray(body.items)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+      let list = JSON.parse(raw || '[]');
+
+      // Reorder items based on the array of IDs sent
+      const newOrderedList: any[] = [];
+      body.items.forEach((id: string) => {
+        const found = list.find((it: any) => it.id === id);
+        if (found) {
+          newOrderedList.push(found);
+        }
+      });
+
+      // Keep any items that were not included in the payload (failsafe)
+      list.forEach((it: any) => {
+        if (!newOrderedList.some((n: any) => n.id === it.id)) {
+          newOrderedList.push(it);
+        }
+      });
+
+      // Re-assign sequential order
+      const updatedList = newOrderedList.map((it: any, i: number) => ({ ...it, order: i + 1 }));
+
+      fs.writeFileSync(DATA_FILE, JSON.stringify(updatedList, null, 2));
+      return new Response(JSON.stringify({ success: true, data: updatedList }), { status: 200 });
+    }
+
+    const { id, direction } = body;
+    if (!id || !direction) {
+      return new Response(JSON.stringify({ success: false, error: 'id and direction are required' }), { status: 400 });
+    }
+    if (direction !== 'up' && direction !== 'down') {
+      return new Response(JSON.stringify({ success: false, error: 'direction must be up or down' }), { status: 400 });
+    }
+
+    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+    let list = JSON.parse(raw || '[]');
+    // Ensure all items have an order, then sort
+    list = list.map((it: any, i: number) => ({ ...it, order: it.order ?? (i + 1) }));
+    list.sort((a: any, b: any) => a.order - b.order);
+
+    const idx = list.findIndex((i: any) => i.id === id);
+    if (idx === -1) {
+      return new Response(JSON.stringify({ success: false, error: 'not found' }), { status: 404 });
+    }
+
+    if (direction === 'up') {
+      if (idx > 0) {
+        const temp = list[idx];
+        list[idx] = list[idx - 1];
+        list[idx - 1] = temp;
+      }
+    } else if (direction === 'down') {
+      if (idx < list.length - 1) {
+        const temp = list[idx];
+        list[idx] = list[idx + 1];
+        list[idx + 1] = temp;
+      }
+    }
+
+    // re-assign order sequentially
+    list = list.map((it: any, i: number) => ({ ...it, order: i + 1 }));
+
+    fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
+    return new Response(JSON.stringify({ success: true, data: list }), { status: 200 });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500 });
+  }
 }
 
 export const runtime = 'nodejs';

@@ -25,6 +25,33 @@ export default function HeroManager() {
   const [images, setImages] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isAdmin()) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnter = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (!isAdmin() || draggedIndex === null || draggedIndex === targetIndex) return;
+
+    const reorderedImages = [...images];
+    const [draggedImage] = reorderedImages.splice(draggedIndex, 1);
+    reorderedImages.splice(targetIndex, 0, draggedImage);
+
+    setDraggedIndex(targetIndex);
+    setImages(reorderedImages);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
 
   const moveImageUp = (index: number) => {
     if (index === 0) return;
@@ -180,22 +207,41 @@ export default function HeroManager() {
         </div>
         <div className="divide-y divide-gray-100">
           {images.map((image, idx) => (
-            <div key={image.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 group">
-              <div className="flex flex-col text-gray-400">
-                <button 
-                  onClick={() => moveImageUp(idx)} 
-                  disabled={idx === 0} 
-                  className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                </button>
-                <button 
-                  onClick={() => moveImageDown(idx)} 
-                  disabled={idx === images.length - 1} 
-                  className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
+            <div
+              key={image.id}
+              draggable={isAdmin()}
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={handleDragOver}
+              onDragEnter={(e) => handleDragEnter(e, idx)}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-4 p-4 transition-all duration-200 select-none ${
+                isAdmin() ? "cursor-grab active:cursor-grabbing" : ""
+              } ${
+                draggedIndex === idx 
+                  ? "bg-blue-50 border-y border-dashed border-[#003399]/40 opacity-55 scale-[0.99] shadow-inner" 
+                  : "hover:bg-gray-50 border-y border-transparent"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-gray-400">
+                {isAdmin() && (
+                  <GripVertical size={18} className="text-gray-400 select-none pointer-events-none mr-1" />
+                )}
+                <div className="flex flex-col">
+                  <button 
+                    onClick={() => moveImageUp(idx)} 
+                    disabled={idx === 0} 
+                    className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                  </button>
+                  <button 
+                    onClick={() => moveImageDown(idx)} 
+                    disabled={idx === images.length - 1} 
+                    className="hover:text-[#003399] disabled:opacity-30 disabled:cursor-not-allowed p-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </button>
+                </div>
               </div>
               <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 relative">
                 {isVideoUrl(image.url) ? (

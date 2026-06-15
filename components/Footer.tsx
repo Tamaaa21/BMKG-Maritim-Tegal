@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Youtube, Twitter, MapPin, Phone, Mail } from "lucide-react";
 import Script from "next/script";
 
@@ -33,13 +34,70 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Facebook, href: "https://www.facebook.com/infoBMKG", label: "Facebook", color: "hover:bg-blue-600" },
-  { icon: Instagram, href: "https://www.instagram.com/infoBMKG", label: "Instagram", color: "hover:bg-pink-600" },
-  { icon: Youtube, href: "https://www.youtube.com/@infoBMKG", label: "YouTube", color: "hover:bg-red-600" },
+  { icon: Facebook, href: "https://www.facebook.com/share/1D8VfEyAeb/", label: "Facebook", color: "hover:bg-blue-600" },
+  { icon: Instagram, href: "https://www.instagram.com/infobmkgtegal?igsh=M3NjaDZnY2pnM2Fw", label: "Instagram", color: "hover:bg-pink-600" },
+  { icon: Youtube, href: "https://www.youtube.com/channel/UC2BAR7jrw0C26ZWzIGTVSkQ", label: "YouTube", color: "hover:bg-red-600" },
   { icon: Twitter, href: "https://twitter.com/infoBMKG", label: "Twitter", color: "hover:bg-sky-500" },
 ];
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  const handleScrollClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string, label: string) => {
+    if (href.startsWith("http")) return;
+
+    const isHome = pathname === "/";
+    let targetId = "";
+
+    if (isHome) {
+      if (label === "Home" || href === "/") {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      const lbl = label.toLowerCase();
+      const hr = href.toLowerCase();
+
+      if (lbl === "publikasi" || hr.includes("#buletin")) {
+        targetId = "buletin";
+      } else if (
+        lbl === "info prakiraan & informasi" ||
+        lbl === "peringatan dini" ||
+        lbl === "prakiraan cuaca" ||
+        lbl === "pasang surut" ||
+        lbl === "kalender maritim" ||
+        lbl === "cuaca maritim" ||
+        lbl === "cuaca pelabuhan" ||
+        lbl === "wisata bahari" ||
+        hr.startsWith("/prakiraan")
+      ) {
+        targetId = "prakiraan";
+      } else if (lbl === "layanan" || hr.startsWith("/layanan")) {
+        targetId = "layanan";
+      } else if (lbl === "kegiatan" || lbl === "berita & artikel" || hr.startsWith("/kegiatan")) {
+        targetId = "kegiatan";
+      } else if (lbl === "contact" || lbl === "kontak" || hr.startsWith("/kontak")) {
+        targetId = "kontak";
+      }
+    } else {
+      const isTargetPage = href === pathname || (href !== "/" && pathname.startsWith(href));
+      if (isTargetPage) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+    }
+
+    if (targetId) {
+      const element = document.getElementById(targetId);
+      if (element) {
+        e.preventDefault();
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <footer
       className="relative bg-[#001a55] text-white overflow-hidden"
@@ -92,26 +150,17 @@ export default function Footer() {
                   <ul className="space-y-2">
                     {links.map((link) => {
                       const isExternal = link.href.startsWith("http");
-                      const isHomeLink = link.label === "Home";
                       return (
                         <li key={link.label}>
-                          {isExternal || isHomeLink ? (
-                            <a
-                              href={link.href}
-                              target={isExternal ? "_blank" : undefined}
-                              rel={isExternal ? "noopener noreferrer" : undefined}
-                              className="text-blue-300 text-xs hover:text-white transition-colors"
-                            >
-                              {link.label}
-                            </a>
-                          ) : (
-                            <Link
-                              href={link.href}
-                              className="text-blue-300 text-xs hover:text-white transition-colors"
-                            >
-                              {link.label}
-                            </Link>
-                          )}
+                          <a
+                            href={link.href}
+                            target={isExternal ? "_blank" : undefined}
+                            rel={isExternal ? "noopener noreferrer" : undefined}
+                            onClick={(e) => handleScrollClick(e, link.href, link.label)}
+                            className="text-blue-300 text-xs hover:text-white transition-colors"
+                          >
+                            {link.label}
+                          </a>
                         </li>
                       );
                     })}

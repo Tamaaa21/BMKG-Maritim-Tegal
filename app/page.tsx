@@ -19,8 +19,8 @@ export default function Home() {
       {/* <AboutSection showExtras={false} /> */}
       <BuletinSection />
       <InformasiLainnyaSection />
-      <EarthquakeCard />
       <PrakiraanSection limit={3} />
+      <EarthquakeCard />
       <LayananSection limit={4} />
       <KegiatanSection limit={4} />
       <ContactSection />

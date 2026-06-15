@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const defaultImages = [
-  "/bg.jpeg"];
+const defaultImages: string[] = [];
 const isVideoUrl = (url: string) => {
   return !!(url && (url.match(/\.(mp4|webm|ogg|mov|mkv|avi|3gp|flv|wmv)/i) || url.includes("video")));
 };
@@ -47,6 +46,8 @@ export default function HeroBackgroundSlideshow({ onImageChange }: { onImageChan
       onImageChange(current);
     }
   }, [current, onImageChange]);
+
+  if (images.length === 0) return null;
 
   return (
     <>
