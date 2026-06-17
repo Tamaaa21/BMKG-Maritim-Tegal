@@ -1,20 +1,27 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { hashPassword } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hashPassword, forbidden } from "@/lib/auth";
 import { logActivity } from "@/lib/activity-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ success: false, message: "Supabase not configured" }, { status: 500 });
-    }
+function getRole(req: NextRequest) {
+  return req.headers.get("x-auth-user-role") || "";
+}
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+function getUserId(req: NextRequest) {
+  return req.headers.get("x-auth-user-id") || "";
+}
+
+export async function GET(request: NextRequest) {
+  const role = getRole(request);
+  if (role !== "super_admin" && role !== "admin") {
+    return forbidden("Hanya admin yang dapat melihat data pengguna");
+  }
+
+  try {
+    const supabase: any = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("users")
       .select("id, username, role, nama, is_active, created_at")
@@ -28,10 +35,15 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
+  const role = getRole(request);
+  if (role !== "super_admin" && role !== "admin") {
+    return forbidden("Hanya admin yang dapat menambah pengguna");
+  }
+
   try {
-    const body = await req.json();
-    const { username, password, role, nama } = body;
+    const body = await request.json();
+    const { username, password, role: newRole, nama } = body;
 
     if (!username || !password) {
       return NextResponse.json({ success: false, message: "Username dan password harus diisi" }, { status: 400 });
@@ -41,13 +53,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Password minimal 6 karakter" }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ success: false, message: "Supabase not configured" }, { status: 500 });
+    // Only super_admin can create other super_admin
+    if (newRole === "super_admin" && role !== "super_admin") {
+      return forbidden("Hanya Super Admin yang dapat membuat akun Super Admin");
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase: any = getSupabaseAdmin();
 
     const { data: existing } = await supabase
       .from("users")
@@ -66,14 +77,14 @@ export async function POST(req: Request) {
       .insert({
         username,
         password: hashedPassword,
-        role: role || "karyawan",
+        role: newRole || "karyawan",
         nama: nama || username,
       })
       .select("id, username, role, nama, is_active, created_at")
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Menambah pengguna: ${username}`, req);
+    logActivity(getUserId(request), `Menambah pengguna: ${username}`);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);

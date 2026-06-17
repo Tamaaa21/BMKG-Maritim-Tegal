@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logActivity } from "@/lib/activity-log";
+import type { PrakiraanCategory } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -22,8 +23,8 @@ export async function PATCH(req: Request, context: any) {
     if (body.icon !== undefined) updateData.icon = body.icon;
     const { data, error } = await supabase.from("prakiraan_categories").update(updateData).eq("id", id).select().single();
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Mengubah kategori prakiraan: ${data?.name || id}`, req);
-    return NextResponse.json({ success: true, data });
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah kategori prakiraan: ${data?.name || id}`);
+    return NextResponse.json({ success: true, data: data as PrakiraanCategory });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
@@ -41,8 +42,8 @@ export async function DELETE(req: Request, context: any) {
     await supabase.from("prakiraan_images").update({ category_id: null }).eq("category_id", id);
     const { data, error } = await supabase.from("prakiraan_categories").delete().eq("id", id).select().single();
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Menghapus kategori prakiraan: ${data?.name || id}`, req);
-    return NextResponse.json({ success: true, data });
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus kategori prakiraan: ${data?.name || id}`);
+    return NextResponse.json({ success: true, data: data as PrakiraanCategory });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });

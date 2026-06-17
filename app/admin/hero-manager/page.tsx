@@ -3,32 +3,23 @@
 import { useState, useEffect } from "react";
 import { Upload, X, GripVertical } from "lucide-react";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
-
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-function isAdmin() {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-}
+import { CardGridSkeleton } from '@/components/LoadingSkeleton';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 const isVideoUrl = (url: string) => {
   return !!(url && (url.match(/\.(mp4|webm|ogg|mov|mkv|avi|3gp|flv|wmv)/i) || url.includes("video")));
 };
 
 export default function HeroManager() {
+  const { isAdmin } = useAdminUser();
   const [images, setImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (!isAdmin()) return;
+    if (!isAdmin) return;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -39,7 +30,7 @@ export default function HeroManager() {
 
   const handleDragEnter = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
-    if (!isAdmin() || draggedIndex === null || draggedIndex === targetIndex) return;
+    if (!isAdmin || draggedIndex === null || draggedIndex === targetIndex) return;
 
     const reorderedImages = [...images];
     const [draggedImage] = reorderedImages.splice(draggedIndex, 1);
@@ -166,10 +157,12 @@ export default function HeroManager() {
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     fetch('/api/admin/hero-images').then(r => r.json()).then((b) => {
       if (!mounted) return;
       if (b?.success) setImages(b.data || []);
-    }).catch(err => console.error(err));
+    }).catch(err => console.error(err))
+    .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false };
   }, []);
 
@@ -201,6 +194,13 @@ export default function HeroManager() {
       </div>
 
       {/* Images List */}
+      {loading ? (
+        <CardGridSkeleton count={4} />
+      ) : images.length === 0 ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">
+          <p>Belum ada media slider.</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">Daftar Media ({images.length})</h2>
@@ -209,13 +209,13 @@ export default function HeroManager() {
           {images.map((image, idx) => (
             <div
               key={image.id}
-              draggable={isAdmin()}
+              draggable={isAdmin}
               onDragStart={(e) => handleDragStart(e, idx)}
               onDragOver={handleDragOver}
               onDragEnter={(e) => handleDragEnter(e, idx)}
               onDragEnd={handleDragEnd}
               className={`flex items-center gap-4 p-4 transition-all duration-200 select-none ${
-                isAdmin() ? "cursor-grab active:cursor-grabbing" : ""
+                isAdmin ? "cursor-grab active:cursor-grabbing" : ""
               } ${
                 draggedIndex === idx 
                   ? "bg-blue-50 border-y border-dashed border-[#003399]/40 opacity-55 scale-[0.99] shadow-inner" 
@@ -223,7 +223,7 @@ export default function HeroManager() {
               }`}
             >
               <div className="flex items-center gap-2 text-gray-400">
-                {isAdmin() && (
+                {isAdmin && (
                   <GripVertical size={18} className="text-gray-400 select-none pointer-events-none mr-1" />
                 )}
                 <div className="flex flex-col">
@@ -247,14 +247,14 @@ export default function HeroManager() {
                 {isVideoUrl(image.url) ? (
                   <video src={image.url} className="w-full h-full object-cover bg-black" muted />
                 ) : (
-                  <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
+                  <img src={image.url} alt={image.name} loading="lazy" className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{image.name}</p>
                 <p className="text-gray-500 text-sm">Urutan: #{idx + 1}</p>
               </div>
-              {isAdmin() && (
+              {isAdmin && (
                 <button
                   onClick={() => handleDelete(image.id)}
                   className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
@@ -266,6 +266,7 @@ export default function HeroManager() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Save Button */}
       <div className="flex gap-3 justify-end">

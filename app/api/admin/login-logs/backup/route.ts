@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { LoginLog } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function GET() {
       version: "1.0",
       exported_at: new Date().toISOString(),
       total: data?.length || 0,
-      records: data || [],
+      records: (data || []) as LoginLog[],
     };
 
     return new NextResponse(JSON.stringify(backupData, null, 2), {

@@ -1,69 +1,61 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { logActivity } from "@/lib/activity-log";
+import { ok, badRequest, serverError } from "@/lib/response";
+import type { HeroImage } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 const ALLOWED_FIELDS = ["name", "url", "order_index", "is_active"];
 
-function getId(req: Request, context: any): string | undefined {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const params = context?.params;
-    if (params?.id) return params.id;
-    return undefined;
-  } catch {
-    return undefined;
-  }
-}
+    const { id } = await params;
+    if (!id) return badRequest("Invalid id");
 
-function sanitize(body: any): Record<string, any> {
-  const clean: Record<string, any> = {};
-  for (const key of ALLOWED_FIELDS) {
-    if (body[key] !== undefined) clean[key] = body[key];
-  }
-  return clean;
-}
+    const supabase: any = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("hero_images")
+      .delete()
+      .eq("id", id)
+      .select()
+      .single();
 
-export async function DELETE(req: Request, context: any) {
-  try {
-    const id = getId(req, context);
-    if (!id) return NextResponse.json({ success: false, message: "Invalid id" }, { status: 400 });
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return NextResponse.json({ success: false }, { status: 500 });
-    const supabase = createClient(url, serviceKey as string);
-
-    const { data, error } = await supabase.from("hero_images").delete().eq("id", id).select().single();
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Menghapus hero slider: ${data?.name || id}`, req);
-    return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus hero slider: ${data?.name || id}`);
+    return ok(data as HeroImage);
+  } catch (error) {
+    return serverError(error);
   }
 }
 
-export async function PATCH(req: Request, context: any) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = getId(req, context);
-    if (!id) return NextResponse.json({ success: false, message: "Invalid id" }, { status: 400 });
-    const body = await req.json();
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return NextResponse.json({ success: false }, { status: 500 });
-    const supabase = createClient(url, serviceKey as string);
+    const { id } = await params;
+    if (!id) return badRequest("Invalid id");
 
-    const cleanData = sanitize(body);
-    if (Object.keys(cleanData).length === 0) {
-      return NextResponse.json({ success: false, message: "Tidak ada field yang valid untuk diupdate" }, { status: 400 });
+    const body = await req.json();
+    const supabase: any = getSupabaseAdmin();
+
+    const cleanData: Record<string, unknown> = {};
+    for (const key of ALLOWED_FIELDS) {
+      if (body[key] !== undefined) cleanData[key] = body[key];
     }
 
-    const { data, error } = await supabase.from("hero_images").update(cleanData).eq("id", id).select().single();
+    if (Object.keys(cleanData).length === 0) {
+      return badRequest("Tidak ada field yang valid untuk diupdate");
+    }
+
+    const { data, error } = await supabase
+      .from("hero_images")
+      .update(cleanData)
+      .eq("id", id)
+      .select()
+      .single();
+
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Mengubah hero slider: ${data?.name || id}`, req);
-    return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah hero slider: ${data?.name || id}`);
+    return ok(data as HeroImage);
+  } catch (error) {
+    return serverError(error);
   }
 }

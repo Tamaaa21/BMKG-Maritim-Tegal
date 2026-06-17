@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logActivity } from "@/lib/activity-log";
+import type { PrakiraanCategory } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET() {
     const supabase = createClient(url, serviceKey as string);
     const { data, error } = await supabase.from("prakiraan_categories").select("*").order("name", { ascending: true });
     if (error) throw error;
-    return NextResponse.json({ success: true, data: data || [] });
+    return NextResponse.json({ success: true, data: (data || []) as PrakiraanCategory[] });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
@@ -50,8 +51,9 @@ export async function POST(req: Request) {
       }
       throw error;
     }
-    logActivity(req.headers.get("x-auth-user"), `Menambah kategori prakiraan: ${name}`, req);
-    return NextResponse.json({ success: true, data });
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`);
+    return NextResponse.json({ success: true, data: data as PrakiraanCategory });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });

@@ -1,18 +1,19 @@
-import fs from 'fs';
-import path from 'path';
-import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { ok, serverError } from "@/lib/response";
+
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const dataPath = path.join(process.cwd(), 'data', 'publications.json');
-    if (!fs.existsSync(dataPath)) return NextResponse.json({ success: true, data: [] });
-    const raw = fs.readFileSync(dataPath, 'utf-8');
-    const list = JSON.parse(raw || '[]');
-    return NextResponse.json({ success: true, data: list });
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ success: false, data: [] }, { status: 500 });
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("publications")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return ok(data || []);
+  } catch (error) {
+    return serverError(error);
   }
 }
-
-export const runtime = 'nodejs';

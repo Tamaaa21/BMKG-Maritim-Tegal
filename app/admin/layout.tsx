@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  Trash2,
   Settings,
   Users,
   LogIn,
@@ -20,57 +19,19 @@ import {
   Camera,
   ConciergeBell,
   Clock,
-  Network
+  Network,
+  Bell
 } from "lucide-react";
-import { AdminRealtimeProvider } from "@/components/AdminRealtimeProvider";
-
-// Patch fetch BEFORE any component renders
-if (typeof window !== "undefined") {
-  const orig = window.fetch.bind(window);
-  window.fetch = function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-    if (url.includes("/api/admin/")) {
-      try {
-        const token = sessionStorage.getItem("adminToken");
-        if (token) {
-          init = init || {};
-          init.headers = init.headers || {};
-          if (Array.isArray(init.headers)) {
-            init.headers = [...init.headers, ["authorization", `Bearer ${token}`]];
-          } else if (init.headers instanceof Headers) {
-            init.headers.set("authorization", `Bearer ${token}`);
-          } else {
-            (init.headers as Record<string, string>)["authorization"] = `Bearer ${token}`;
-          }
-        }
-      } catch {}
-    }
-    return orig(input, init);
-  };
-}
+import { AdminRealtimeProvider, useAdminRealtime } from "@/components/AdminRealtimeProvider";
+import { Toaster } from "@/components/ui/sonner";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import { AdminUserContext } from "@/hooks/useAdminUser";
 
 interface UserInfo {
   username: string;
   role: string;
   nama: string;
   id: string;
-}
-
-function decodeUserFromToken(): UserInfo | null {
-  try {
-    const token = sessionStorage.getItem("adminToken");
-    if (!token) return null;
-    const decoded = atob(token);
-    // Format: username:id:timestamp
-    const parts = decoded.split(":");
-    if (parts.length >= 2) {
-      const stored = sessionStorage.getItem("adminUser");
-      if (stored) return JSON.parse(stored);
-    }
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 const navSections = [
@@ -133,6 +94,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { unreadBukuTamu, resetUnreadBukuTamu } = useAdminRealtime();
+  useSessionTimeout();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -142,49 +105,53 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const userInitial = user?.nama?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || "A";
 
   useEffect(() => {
-    try {
-      const token = sessionStorage.getItem("adminToken");
-      const storedUser = sessionStorage.getItem("adminUser");
-      if (!token) {
-        setIsLoggedIn(false);
-        setLoading(false);
-        if (pathname !== "/admin/login") {
-          router.push("/admin/login");
-        }
-      } else {
-        let userData: UserInfo | null = null;
-        if (storedUser) {
-          try { userData = JSON.parse(storedUser); setUser(userData); } catch { }
-        }
-        setIsLoggedIn(true);
-        setLoading(false);
+    let cancelled = false;
 
-        if (userData) {
-          const isUserAdmin = userData.role === "admin" || userData.role === "super_admin";
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/admin/me");
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (data.success && data.user) {
+          setUser(data.user);
+          setIsLoggedIn(true);
+          setLoading(false);
+
+          // Redirect jika role karyawan akses halaman admin-only
+          const isUserAdmin = data.user.role === "admin" || data.user.role === "super_admin";
           if (!isUserAdmin && ADMIN_ONLY_PATHS.includes(pathname)) {
             router.push("/admin/dashboard");
           }
-        }
 
-        if (pathname === "/admin/login") {
-          router.push("/admin/dashboard");
+          if (pathname === "/admin/login") {
+            router.push("/admin/dashboard");
+          }
+        } else {
+          setIsLoggedIn(false);
+          setLoading(false);
+          if (pathname !== "/admin/login") {
+            router.push("/admin/login");
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setIsLoggedIn(false);
+          setLoading(false);
+          try { router.push("/admin/login"); } catch {}
         }
       }
-    } catch (err) {
-      console.error("Error checking admin token:", err);
-      setIsLoggedIn(false);
-      setLoading(false);
-      try { router.push("/admin/login"); } catch (e) { /* ignore */ }
     }
+
+    checkAuth();
+    return () => { cancelled = true; };
   }, [router, pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      sessionStorage.removeItem("adminToken");
-      sessionStorage.removeItem("adminUser");
-    } catch (e) {
-      // ignore
-    }
+      await fetch("/api/admin/logout", { method: "POST" });
+    } catch {}
     setIsLoggedIn(false);
     setLoading(false);
     router.push("/admin/login");
@@ -209,8 +176,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <AdminUserContext.Provider value={{ user, isAdmin: isAdmin, isLoggedIn }}>
     <div className="flex h-screen bg-blue-50/30">
-      {/* Sidebar - Light, elegant, professional layout */}
+      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#002266] border-r border-blue-900/40 transition-transform duration-300 lg:relative lg:translate-x-0 overflow-hidden flex flex-col justify-between ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
@@ -219,7 +187,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Sidebar Brand Header */}
           <div className="p-5 border-b border-blue-900/40 flex items-center gap-3 flex-shrink-0">
             <div className="w-9 h-9 rounded-xl overflow-hidden bg-white p-1 border border-white/10 shadow-sm flex-shrink-0 flex items-center justify-center">
-              <img src="/bmkg-logo.png" alt="BMKG" className="w-full h-full object-contain" />
+              <img src="/bmkg-logo.png" alt="BMKG" loading="lazy" className="w-full h-full object-contain" />
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-black text-white leading-tight truncate">BMKG Admin</h1>
@@ -294,8 +262,21 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Right Controls: Notification & Profile */}
+          {/* Right Controls */}
           <div className="flex items-center gap-3 sm:gap-6">
+            <button
+              onClick={() => { resetUnreadBukuTamu(); router.push("/admin/buku-tamu"); }}
+              className="relative p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-[#003399] transition-colors"
+              title="Buku Tamu Baru"
+            >
+              <Bell size={20} />
+              {unreadBukuTamu > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md">
+                  {unreadBukuTamu > 9 ? "9+" : unreadBukuTamu}
+                </span>
+              )}
+            </button>
+
             {/* User Profile */}
             <div className="flex items-center gap-3 pl-4 sm:pl-6 border-l border-slate-100">
               <div className="text-right hidden sm:block">
@@ -322,6 +303,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+      <Toaster richColors position="top-right" />
     </div>
+    </AdminUserContext.Provider>
   );
 }

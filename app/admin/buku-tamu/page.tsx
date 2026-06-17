@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface BukuTamuEntry {
   id: string;
@@ -18,20 +19,8 @@ interface BukuTamuEntry {
   created_at: string;
 }
 
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-function isAdmin() {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-}
-
 export default function BukuTamuPage() {
+  const { isAdmin } = useAdminUser();
   const [data, setData] = useState<BukuTamuEntry[]>([]);
   const [filtered, setFiltered] = useState<BukuTamuEntry[]>([]);
   const [search, setSearch] = useState("");
@@ -39,7 +28,7 @@ export default function BukuTamuPage() {
   const [selectedEntry, setSelectedEntry] = useState<BukuTamuEntry | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
   const [isDeleteMode, setIsDeleteMode] = useState(false);
 
@@ -257,7 +246,7 @@ export default function BukuTamuPage() {
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`);
+    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`, 'Ya, Restore');
     if (!confirm.isConfirmed) return;
 
     setRestoring(true);
@@ -299,7 +288,7 @@ export default function BukuTamuPage() {
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari berdasarkan nama, email, atau telepon..." className="pl-12 text-sm" />
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {isAdmin() && (
+          {isAdmin && (
             isDeleteMode ? (
               <>
                 <button
@@ -421,7 +410,7 @@ export default function BukuTamuPage() {
                                 >
                                   <Eye size={18} />
                                 </button>
-                                {isAdmin() && (
+                                {isAdmin && (
                                   <button
                                     onClick={() => handleDelete(item.id)}
                                     className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
@@ -471,6 +460,12 @@ export default function BukuTamuPage() {
                       >
                         Selanjutnya
                       </button>
+                      <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value, 10)); setCurrentPage(1); }}
+                        className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs bg-white text-gray-600 focus:outline-none">
+                        <option value={10}>10 data</option>
+                        <option value={20}>20 data</option>
+                        <option value={50}>50 data</option>
+                      </select>
                     </div>
                   </div>
                 )}
@@ -500,6 +495,7 @@ export default function BukuTamuPage() {
                     <img
                       src={selectedEntry.foto_data}
                       alt="Foto pengunjung"
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>

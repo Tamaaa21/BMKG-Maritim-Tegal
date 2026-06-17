@@ -1,24 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { logActivity } from "@/lib/activity-log";
+import { serverError } from "@/lib/response";
+import type { BukuTamu } from "@/lib/types";
+
+export const runtime = "nodejs";
 
 export async function DELETE(request: Request, context: any) {
   const params = (context && context.params) ? context.params : (context && typeof context === 'object' ? (context as any) : null);
   const id = params && params.id ? params.id : (typeof params?.then === 'function' ? (await params).id : undefined);
   const paramsId = id;
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!url) {
-      console.warn("Supabase URL not set");
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
-    }
-
-    const key = serviceKey || anonKey;
-    const supabase = createClient(url, key as string);
-
+    const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("buku_tamu")
       .delete()
@@ -27,10 +20,9 @@ export async function DELETE(request: Request, context: any) {
 
     if (error) throw error;
 
-    logActivity(request.headers.get("x-auth-user"), `Menghapus data buku tamu`, request);
+    logActivity(request.headers.get("x-auth-user-id"), `Menghapus data buku tamu`);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+    return serverError(error);
   }
 }

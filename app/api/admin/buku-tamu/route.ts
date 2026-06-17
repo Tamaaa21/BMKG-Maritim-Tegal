@@ -1,62 +1,63 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { logActivity } from "@/lib/activity-log";
+import type { BukuTamu } from "@/lib/types";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getUserId(request: NextRequest) {
+  return request.headers.get("x-auth-user-id") || "";
+}
+
+function getRole(request: NextRequest) {
+  return request.headers.get("x-auth-user-role") || "";
+}
 
 export async function GET() {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!url) {
-      console.warn("Supabase URL not set");
-      return NextResponse.json([], { status: 500 });
-    }
-
-    const key = serviceKey || anonKey;
-    const supabase = createClient(url, key as string);
-
+    const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("buku_tamu")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-
-    return NextResponse.json(data || []);
+    return NextResponse.json((data || []) as BukuTamu[]);
   } catch (error) {
     console.error(error);
     return NextResponse.json([], { status: 500 });
   }
 }
 
-export async function DELETE(req: Request) {
-  try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return NextResponse.json({ success: false, message: "Supabase config missing" }, { status: 500 });
+export async function DELETE(request: NextRequest) {
+  const role = getRole(request);
+  if (role !== "super_admin" && role !== "admin") {
+    return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+  }
 
-    const supabase = createClient(url, serviceKey);
+  try {
+    const supabase = getSupabaseAdmin();
     let ids: string[] = [];
-    
+
     try {
-      const body = await req.json();
+      const body = await request.json();
       if (body.ids && Array.isArray(body.ids)) {
         ids = body.ids;
       }
-    } catch (e) {
-      // no body
+    } catch {
+      // no body = delete all
     }
 
     if (ids.length > 0) {
       const { error } = await supabase.from("buku_tamu").delete().in("id", ids);
       if (error) throw error;
-      logActivity(req.headers.get("x-auth-user"), `Menghapus ${ids.length} data buku tamu`, req);
+      logActivity(getUserId(request), `Menghapus ${ids.length} data buku tamu`);
       return NextResponse.json({ success: true, message: "Data terpilih berhasil dihapus" });
     } else {
       const { error } = await supabase.from("buku_tamu").delete().neq("id", "0");
       if (error) throw error;
-      logActivity(req.headers.get("x-auth-user"), `Menghapus semua data buku tamu`, req);
+      logActivity(getUserId(request), "Menghapus semua data buku tamu");
       return NextResponse.json({ success: true, message: "Semua data berhasil dihapus" });
     }
   } catch (error: any) {

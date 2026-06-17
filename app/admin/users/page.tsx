@@ -25,6 +25,7 @@ export default function UsersManager() {
     id?: string;
     username: string;
     password: string;
+    confirmPassword: string;
     nama: string;
     role: string;
   } | null>(null);
@@ -50,7 +51,7 @@ export default function UsersManager() {
 
   const handleOpenAdd = () => {
     setModalMode("add");
-    setEditingUser({ username: "", password: "", nama: "", role: "karyawan" });
+    setEditingUser({ username: "", password: "", confirmPassword: "", nama: "", role: "karyawan" });
     setIsModalOpen(true);
   };
 
@@ -60,6 +61,7 @@ export default function UsersManager() {
       id: user.id,
       username: user.username,
       password: "",
+      confirmPassword: "",
       nama: user.nama,
       role: user.role,
     });
@@ -114,6 +116,10 @@ export default function UsersManager() {
     }
     if (modalMode === "add" && !editingUser.password) {
       showError('Validasi Gagal', "Password harus diisi");
+      return;
+    }
+    if (editingUser.password && editingUser.password !== editingUser.confirmPassword) {
+      showError('Validasi Gagal', "Konfirmasi password tidak cocok");
       return;
     }
 
@@ -341,6 +347,23 @@ export default function UsersManager() {
                   disabled={saving}
                 />
               </div>
+
+              {editingUser.password && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-semibold text-gray-700">Konfirmasi Password</label>
+                  <Input
+                    type="password"
+                    value={editingUser.confirmPassword}
+                    onChange={(e) => setEditingUser({ ...editingUser, confirmPassword: e.target.value })}
+                    placeholder="Ulangi password"
+                    disabled={saving}
+                    className={editingUser.confirmPassword && editingUser.password !== editingUser.confirmPassword ? "border-red-400 focus:ring-red-400" : ""}
+                  />
+                  {editingUser.confirmPassword && editingUser.password !== editingUser.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">Password tidak cocok</p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-gray-700">Hak Akses (Role)</label>

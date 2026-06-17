@@ -1,84 +1,72 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth-edge";
 
-const TOKEN_SECRET = process.env.TOKEN_SECRET || "bmkg-maritim-tegal-secret-change-in-production";
-const PUBLIC_ADMIN_ROUTES = ["/api/admin/login"];
+const PUBLIC_ADMIN_PATHS = ["/api/admin/login"];
 
-function base64UrlDecode(s: string): string {
-  s = s.replace(/-/g, "+").replace(/_/g, "/");
-  while (s.length % 4) s += "=";
-  return atob(s);
-}
-
-function hexEncode(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function sha256(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(data));
-  return hexEncode(hashBuffer);
-}
-
-async function verifyToken(token: string): Promise<{ valid: boolean; userId?: string; role?: string }> {
-  try {
-    const decoded = base64UrlDecode(token);
-    const parts = decoded.split(":");
-    const signature = parts.pop();
-    const payload = parts.join(":");
-
-    const expectedSig = await sha256(payload + TOKEN_SECRET);
-
-    if (signature !== expectedSig) return { valid: false };
-
-    const [userId, role, , timestamp] = parts;
-    if (Date.now() - parseInt(timestamp) > 24 * 60 * 60 * 1000) return { valid: false };
-
-    return { valid: true, userId, role };
-  } catch {
-    return { valid: false };
-  }
-}
+const ALLOWED_ROLES_FOR_DELETE = ["super_admin", "admin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
-  const isWriteOperation = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+  // Only protect /api/admin/* routes
+  if (!pathname.startsWith("/api/admin/")) {
+    return NextResponse.next();
+  }
 
-  if (pathname.startsWith("/api/admin") && !PUBLIC_ADMIN_ROUTES.includes(pathname)) {
-    // GET requests: izinkan tanpa auth (untuk frontend publik)
-    if (!isWriteOperation) {
-      return NextResponse.next();
-    }
+  // Allow public admin paths (login) and logout
+  if (PUBLIC_ADMIN_PATHS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
 
-    // Write operations (POST/PUT/PATCH/DELETE): wajib auth
+  // Extract token from cookie first, then Authorization header as fallback
+  let token = request.cookies.get(COOKIE_NAME)?.value;
+  if (!token) {
     const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized - silakan login ulang" },
-        { status: 401 }
-      );
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
     }
+  }
 
-    const result = await verifyToken(authHeader.slice(7));
-    if (!result.valid) {
-      return NextResponse.json(
-        { success: false, message: "Token tidak valid atau kedaluwarsa" },
-        { status: 401 }
-      );
+  if (!token) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+
+  const result = await verifySessionToken(token);
+  if (!result.valid) {
+    return NextResponse.json({ success: false, message: "Session expired or invalid" }, { status: 401 });
+  }
+
+  // RBAC: Only super_admin and admin can perform destructive operations
+  if (["DELETE", "PATCH", "PUT"].includes(method)) {
+    if (!ALLOWED_ROLES_FOR_DELETE.includes(result.role || "")) {
+      return NextResponse.json({ success: false, message: "Forbidden: insufficient role" }, { status: 403 });
     }
+  }
 
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-auth-user", result.userId || "");
-    requestHeaders.set("x-auth-role", result.role || "");
+  // Attach user info to request headers for downstream API routes
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-auth-user-id", result.userId || "");
+  requestHeaders.set("x-auth-user-role", result.role || "");
+  requestHeaders.set("x-auth-user-username", result.username || "");
 
-    return NextResponse.next({
-      request: { headers: requestHeaders },
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  // Renew cookie if using cookie auth
+  if (request.cookies.get(COOKIE_NAME)?.value) {
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 86400,
     });
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

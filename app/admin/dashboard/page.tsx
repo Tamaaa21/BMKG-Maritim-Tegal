@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, FileText, ImageIcon, Users, LogIn, ArrowRight, ShieldCheck, Compass, CheckCircle2, Calendar, HelpCircle } from "lucide-react";
+import { MessageSquare, FileText, ImageIcon, Users, LogIn, ArrowRight, ShieldCheck, Compass, CheckCircle2, Calendar, HelpCircle, AlertTriangle } from "lucide-react";
 import { useAdminRealtime } from "@/components/AdminRealtimeProvider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const { stats } = useAdminRealtime();
   const [userCount, setUserCount] = useState(0);
   const [prakiraanStats, setPrakiraanStats] = useState({ active: 0, inactive: 0 });
+  const [expiringPrakiraan, setExpiringPrakiraan] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/admin/stats/users")
@@ -19,6 +20,11 @@ export default function AdminDashboard() {
     fetch("/api/admin/stats/prakiraan")
       .then(r => r.json())
       .then(d => { if (d.success) setPrakiraanStats({ active: d.active, inactive: d.inactive }); })
+      .catch(() => {});
+
+    fetch("/api/admin/stats/prakiraan/expiring")
+      .then(r => r.json())
+      .then(d => { if (d.success) setExpiringPrakiraan(d.data || []); })
       .catch(() => {});
   }, []);
 
@@ -116,6 +122,56 @@ export default function AdminDashboard() {
           })}
         </div>
       </div>
+
+      {/* Expiring Prakiraan Warning */}
+      {expiringPrakiraan.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-100 border border-amber-200 text-amber-600 flex-shrink-0">
+              <AlertTriangle size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="font-extrabold text-amber-800 text-sm">
+                    {expiringPrakiraan.length} Prakiraan Akan Kedaluwarsa
+                  </p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Prakiraan berikut akan berakhir dalam 24 jam ke depan:
+                  </p>
+                </div>
+                <Link
+                  href="/admin/prakiraan-manager"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded-xl transition-colors text-xs"
+                >
+                  Kelola <ArrowRight size={14} />
+                </Link>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {expiringPrakiraan.map((item: any) => (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-semibold text-amber-700"
+                  >
+                    {item.title}
+                    <span className="text-amber-400 font-normal">
+                      &middot;{" "}
+                      {item.waktu_berakhir
+                        ? new Date(item.waktu_berakhir).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions Panel */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">

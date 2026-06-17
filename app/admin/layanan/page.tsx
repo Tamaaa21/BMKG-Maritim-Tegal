@@ -5,6 +5,8 @@ import { Search, Plus, Edit2, Trash2, Link as LinkIcon, Info, X } from "lucide-r
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
+import { CardGridSkeleton } from '@/components/LoadingSkeleton';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface LayananCard {
   id: string;
@@ -15,20 +17,8 @@ interface LayananCard {
   created_at: string;
 }
 
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-function isAdmin() {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-}
-
 export default function LayananAdminPage() {
+  const { isAdmin } = useAdminUser();
   const [services, setServices] = useState<LayananCard[]>([]);
   const [filtered, setFiltered] = useState<LayananCard[]>([]);
   const [search, setSearch] = useState("");
@@ -202,7 +192,7 @@ export default function LayananAdminPage() {
           <h1 className="text-3xl font-bold text-gray-900">Kelola Kartu Layanan</h1>
           <p className="text-gray-500 mt-2">Manajemen kartu layanan yang tampil pada halaman utama pengguna.</p>
         </div>
-        {isAdmin() && (
+        {isAdmin && (
           <button
             onClick={handleOpenAdd}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all text-sm shrink-0"
@@ -227,10 +217,7 @@ export default function LayananAdminPage() {
       {/* Cards Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center">
-            <div className="w-10 h-10 border-4 border-[#003399] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">Memuat kartu layanan...</p>
-          </div>
+          <CardGridSkeleton count={4} />
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Info className="mx-auto text-gray-400 mb-3" size={36} />
@@ -254,7 +241,7 @@ export default function LayananAdminPage() {
                   <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 md:px-6 py-5 hidden sm:table-cell">
                       {item.cover_url ? (
-                        <img src={item.cover_url} alt="Cover" className="w-12 md:w-16 h-8 md:h-10 object-cover rounded" />
+                        <img src={item.cover_url} alt="Cover" loading="lazy" className="w-12 md:w-16 h-8 md:h-10 object-cover rounded" />
                       ) : (
                         <span className="text-gray-400 text-xs italic">Tidak ada</span>
                       )}
@@ -289,7 +276,7 @@ export default function LayananAdminPage() {
                         >
                           <Edit2 size={18} />
                         </button>
-                        {isAdmin() && (
+                        {isAdmin && (
                           <button
                             onClick={() => handleDelete(item.id)}
                             className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
@@ -381,7 +368,7 @@ export default function LayananAdminPage() {
                 </label>
                 {coverPreview && (
                   <div className="relative w-full h-32 mb-2 rounded-lg overflow-hidden border">
-                    <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
+                    <img src={coverPreview} alt="Cover preview" loading="lazy" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => { setCoverFile(null); setCoverPreview(""); }}

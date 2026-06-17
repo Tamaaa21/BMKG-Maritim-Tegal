@@ -132,7 +132,7 @@ export default function PrakiraanDetailPage() {
   const CategoryIcon = data.category ? getIcon(data.category.icon) : null;
   const displayType = data.display_type || "gambar_saja";
   const uniqueGalleryImages = Array.from(new Set(data.gallery_images || [])).filter(img => img !== data.url);
-  const allImages = [data.url, ...uniqueGalleryImages];
+  const allImages = displayType === "gambar_galeri" ? [data.url, ...uniqueGalleryImages] : [data.url];
   const showGallery = displayType === "gambar_galeri" && uniqueGalleryImages.length > 0;
   const showText = displayType === "gambar_teks" || displayType === "gambar_galeri";
   const isImageOnly = displayType === "gambar_saja";

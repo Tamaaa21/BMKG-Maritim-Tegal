@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { LoginLog } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get("username");
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !serviceKey) {
@@ -13,14 +17,20 @@ export async function GET() {
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    const { data, error } = await supabase
+    let query = supabase
       .from("login_logs")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
 
+    if (username) {
+      query = query.eq("username", username);
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
-    return NextResponse.json({ success: true, data: data || [] });
+    return NextResponse.json({ success: true, data: (data || []) as LoginLog[] });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });

@@ -39,9 +39,9 @@ CREATE POLICY "Admin can manage users"
     )
   );
 
--- Insert default super admin (password: admin123)
+-- Insert default super admin (password: admin123 — already hashed)
 INSERT INTO public.users (username, password, role, nama)
-VALUES ('admin', 'admin123', 'super_admin', 'Administrator Utama')
+VALUES ('admin', '$2b$12$4fPVFBIL53s8AOnI8eyzauE4uSh5e.o6k52DFdGVdjqvc1wRYJXPG', 'super_admin', 'Administrator Utama')
 ON CONFLICT (username) DO NOTHING;
 
 -- 3) Create login_logs table

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { BukuTamu } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
     const supabase = createClient(url, serviceKey);
     const body = await req.json();
 
-    let records: any[] = [];
+    let records: Partial<BukuTamu>[] = [];
     if (body.records && Array.isArray(body.records)) {
       records = body.records;
     } else if (Array.isArray(body)) {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     // Strip id to let DB generate new UUIDs, keep other fields
-    const insertData = records.map((r: any) => ({
+    const insertData = records.map((r: Partial<BukuTamu>) => ({
       nama: r.nama,
       email: r.email,
       no_telepon: r.no_telepon,

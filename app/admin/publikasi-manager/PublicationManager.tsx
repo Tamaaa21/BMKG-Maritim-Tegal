@@ -5,21 +5,11 @@ import { Upload, Trash, Plus, FileText, Image } from "lucide-react";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
-
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-function isAdmin() {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-}
+import { CardGridSkeleton } from '@/components/LoadingSkeleton';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 export default function PublicationManager() {
+  const { isAdmin } = useAdminUser();
   const [items, setItems] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [addingUrl, setAddingUrl] = useState('');
@@ -27,14 +17,17 @@ export default function PublicationManager() {
   const [coverUrl, setCoverUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchList = async () => {
+    setLoading(true);
     try {
       const r = await fetch('/api/admin/publications');
       const j = await r.json();
       if (j?.success) setItems(j.data);
     } catch (e) {}
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -46,24 +39,15 @@ export default function PublicationManager() {
       showError('Validasi Gagal', 'Silakan pilih file publikasi atau isi URL file');
       return;
     }
-    setLoading(true);
+    setUploading(true);
     try {
       const form = new FormData();
       if (file) form.append('file', file);
       if (addingUrl) form.append('url', addingUrl);
       if (coverFile) form.append('coverFile', coverFile);
-      if (coverUrl) form.append('coverUrl', coverUrl);
+      if (coverUrl)       form.append('coverUrl', coverUrl);
       form.append('title', title || 'Publikasi Baru');
       form.append('description', description || '');
-      
-      try {
-        const token = typeof window !== 'undefined' ? sessionStorage.getItem('adminToken') : null;
-        if (token) {
-          const decoded = atob(token);
-          const username = decoded.split(':')[0];
-          if (username) form.append('uploader', username);
-        }
-      } catch (e) {}
 
       const r = await fetch('/api/admin/publications', { method: 'POST', body: form });
       const j = await r.json();
@@ -83,7 +67,7 @@ export default function PublicationManager() {
       console.error(e);
       showError('Error Koneksi', 'Terjadi kesalahan koneksi');
     }
-    setLoading(false);
+    setUploading(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -141,11 +125,11 @@ export default function PublicationManager() {
       <div className="flex justify-end pt-2">
         <button 
           onClick={handleUpload} 
-          disabled={loading} 
+          disabled={uploading} 
           className="px-6 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
         >
           <Plus size={18} />
-          {loading ? 'Mengirim...' : 'Tambah Publikasi'}
+          {uploading ? 'Mengirim...' : 'Tambah Publikasi'}
         </button>
       </div>
 
@@ -153,7 +137,9 @@ export default function PublicationManager() {
       <div className="pt-6 border-t border-gray-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Publikasi Saat Ini</h3>
         
-        {items.length === 0 ? (
+        {loading ? (
+          <CardGridSkeleton count={4} />
+        ) : items.length === 0 ? (
           <p className="text-sm text-gray-400 italic">Belum ada publikasi yang diunggah.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -163,14 +149,14 @@ export default function PublicationManager() {
                   {/* Thumbnail / Cover */}
                   <div className="w-full h-36 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 relative flex items-center justify-center">
                     {it.cover_url ? (
-                      <img src={it.cover_url} alt={it.title} className="w-full h-full object-cover" />
+                      <img src={it.cover_url} alt={it.title} loading="lazy" className="w-full h-full object-cover" />
                     ) : it.url.endsWith('.pdf') ? (
                       <div className="flex flex-col items-center gap-1.5 text-center p-3 select-none">
                         <FileText size={32} className="text-red-500" />
                         <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider">PDF</span>
                       </div>
                     ) : (
-                      <img src={it.url} alt={it.title} className="w-full h-full object-cover" />
+                      <img src={it.url} alt={it.title} loading="lazy" className="w-full h-full object-cover" />
                     )}
                   </div>
                   
@@ -182,7 +168,7 @@ export default function PublicationManager() {
 
                 <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-2 text-[10px] text-gray-400">
                   <span>Oleh: {it.uploader || "admin"}</span>
-                  {isAdmin() && (
+                  {isAdmin && (
                     <button 
                       className="bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 text-red-600 rounded-lg p-1.5 transition-colors" 
                       onClick={()=>handleDelete(it.id)}

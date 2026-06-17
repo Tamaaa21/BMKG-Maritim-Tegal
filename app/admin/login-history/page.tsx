@@ -4,19 +4,7 @@ import { useState, useEffect } from "react";
 import { LogIn, Clock, Search, ChevronLeft, ChevronRight, Download, Monitor, Globe, Trash2, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
-
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-const isAdmin = () => {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-};
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface LoginLog {
   id: string;
@@ -28,14 +16,14 @@ interface LoginLog {
   aktivitas?: string;
 }
 
-const ITEMS_PER_PAGE = 20;
-
 export default function LoginHistoryPage() {
+  const { isAdmin } = useAdminUser();
   const [logs, setLogs] = useState<LoginLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [restoring, setRestoring] = useState(false);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
@@ -112,10 +100,10 @@ export default function LoginHistoryPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedLogs.size === paginated.length && paginated.length > 0) {
+    if (selectedLogs.size === filtered.length && filtered.length > 0) {
       setSelectedLogs(new Set());
     } else {
-      setSelectedLogs(new Set(paginated.map(l => l.id)));
+      setSelectedLogs(new Set(filtered.map(l => l.id)));
     }
   };
 
@@ -132,7 +120,7 @@ export default function LoginHistoryPage() {
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`);
+    const confirm = await showConfirm('Restore Data?', `Restore data dari file ${file.name}? Data akan ditambahkan ke database.`, 'Ya, Restore');
     if (!confirm.isConfirmed) return;
 
     setRestoring(true);
@@ -181,9 +169,9 @@ export default function LoginHistoryPage() {
     return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
   });
 
-  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
-  const paginated = sortedFiltered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+  const paginated = sortedFiltered.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   // Reset page and selections when search/filter changes
   useEffect(() => {
@@ -220,7 +208,7 @@ export default function LoginHistoryPage() {
           >
             <ArrowUpDown size={18} /> {sortOrder === "desc" ? "Terbaru" : "Terlama"}
           </button>
-          {isAdmin() && (
+          {isAdmin && (
             isDeleteMode ? (
               <>
                 <button
@@ -289,7 +277,7 @@ export default function LoginHistoryPage() {
                         <input 
                           type="checkbox" 
                           className="rounded border-gray-300 text-[#003399] focus:ring-[#003399]"
-                          checked={paginated.length > 0 && selectedLogs.size === paginated.length}
+                          checked={filtered.length > 0 && selectedLogs.size === filtered.length}
                           onChange={toggleSelectAll}
                         />
                       </th>
@@ -315,7 +303,7 @@ export default function LoginHistoryPage() {
                       )}
                       <td className="py-3 px-3 w-10">
                         <span className="text-gray-400 text-xs font-mono">
-                          {(safePage - 1) * ITEMS_PER_PAGE + index + 1}
+                          {(safePage - 1) * itemsPerPage + index + 1}
                         </span>
                       </td>
                       <td className="py-3 px-3">
@@ -397,6 +385,13 @@ export default function LoginHistoryPage() {
                   >
                     <ChevronRight size={14} />
                   </button>
+
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(parseInt(e.target.value, 10)); setCurrentPage(1); }}
+                    className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs bg-white text-gray-600 focus:outline-none">
+                    <option value={10}>10 data</option>
+                    <option value={20}>20 data</option>
+                    <option value={50}>50 data</option>
+                  </select>
                 </div>
               </div>
             )}

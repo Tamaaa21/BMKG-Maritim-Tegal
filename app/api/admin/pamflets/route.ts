@@ -1,163 +1,254 @@
-import { NextRequest } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { uploadFile } from "@/lib/upload";
 import { logActivity } from "@/lib/activity-log";
+import { ok, badRequest, notFound, serverError } from "@/lib/response";
+import type { Pamflet } from "@/lib/types";
 
-const DATA_FILE = path.join(process.cwd(), 'data', 'pamflets.json');
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'pamflets');
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function ensureStorage() {
-  const dataDir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]');
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+function handleDbError(error: any) {
+  const msg = String(error?.message || error);
+  if (msg.includes("Could not find the table") || msg.includes("does not exist")) {
+    return NextResponse.json({
+      success: false,
+      message: "Tabel pamflets belum dibuat di database. Jalankan migration SQL di Supabase dashboard.",
+    }, { status: 500 });
+  }
+  return null;
 }
 
 export async function GET() {
-  ensureStorage();
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  let list = JSON.parse(raw || '[]');
-  // sort list by order (ascending)
-  list.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-  return new Response(JSON.stringify({ success: true, data: list }), { status: 200 });
+  try {
+    const supabase: any = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("pamflets")
+      .select("*")
+      .order("order", { ascending: true });
+
+    if (error) {
+      const dbErr = handleDbError(error);
+      if (dbErr) return dbErr;
+      throw error;
+    }
+    return ok(data as Pamflet[]);
+  } catch (error) {
+    const dbErr = handleDbError(error);
+    if (dbErr) return dbErr;
+    return serverError(error);
+  }
 }
 
-export async function POST(req: NextRequest) {
-  ensureStorage();
+export async function POST(req: Request) {
   try {
+    const supabase: any = getSupabaseAdmin();
+
     const form = await req.formData();
-    const file = form.get('file') as File | null;
-    const url = form.get('url')?.toString() || null;
-    const uploader = form.get('uploader')?.toString() || null;
-    const title = form.get('title')?.toString() || '';
+    const file = form.get("file") as File | null;
+    const url = form.get("url")?.toString() || null;
+    const uploader = req.headers.get("x-auth-user-username") || form.get("uploader")?.toString() || null;
+    const title = form.get("title")?.toString() || "";
+    const waktu_berakhir = form.get("waktu_berakhir")?.toString() || null;
 
     let storedUrl = url;
-    if (file && (file as any).size) {
-      const buf = Buffer.from(await (file as any).arrayBuffer());
-      const filename = `pamflet-${Date.now()}-${String((file as any).name || 'upload')}`.replace(/[^a-zA-Z0-9.\-]/g, '_');
-      const outPath = path.join(UPLOAD_DIR, filename);
-      fs.writeFileSync(outPath, buf);
-      storedUrl = `/uploads/pamflets/${filename}`;
+    if (file && file.size) {
+      const result = await uploadFile(file, "pamflets");
+      storedUrl = result.url;
     }
 
-    if (!storedUrl) return new Response(JSON.stringify({ success: false, error: 'No file or url provided' }), { status: 400 });
+    if (!storedUrl) return badRequest("No file or url provided");
 
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    const list = JSON.parse(raw || '[]');
-    const id = Date.now().toString();
-    const item: any = { id, url: storedUrl, title, order: list.length + 1 };
-    if (uploader) item.uploader = uploader;
-    list.push(item);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
-    logActivity(req.headers.get("x-auth-user"), `Menambah pamflet: ${title}`, req);
-    return new Response(JSON.stringify({ success: true, data: item }), { status: 201 });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500 });
+    // Get next order
+    const { data: existing, error: existingError } = await supabase
+      .from("pamflets")
+      .select("order")
+      .order("order", { ascending: false })
+      .limit(1);
+
+    if (existingError) {
+      const dbErr = handleDbError(existingError);
+      if (dbErr) return dbErr;
+    }
+
+    const nextOrder = (existing && existing.length > 0 ? existing[0].order : 0) + 1;
+
+    const { data, error } = await supabase
+      .from("pamflets")
+      .insert({ title, url: storedUrl, order: nextOrder, uploader: uploader || null, waktu_berakhir })
+      .select()
+      .single();
+
+    if (error) {
+      const dbErr = handleDbError(error);
+      if (dbErr) return dbErr;
+      throw error;
+    }
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah pamflet: ${title}`);
+    return ok(data as Pamflet);
+  } catch (error) {
+    const dbErr = handleDbError(error);
+    if (dbErr) return dbErr;
+    return serverError(error);
   }
 }
 
-export async function DELETE(req: NextRequest) {
-  ensureStorage();
-  const url = new URL(req.url);
-  const id = url.searchParams.get('id');
-  if (!id) return new Response(JSON.stringify({ success: false, error: 'id required' }), { status: 400 });
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  let list = JSON.parse(raw || '[]');
-  const idx = list.findIndex((i: any) => i.id === id);
-  if (idx === -1) return new Response(JSON.stringify({ success: false, error: 'not found' }), { status: 404 });
-  const [removed] = list.splice(idx, 1);
-  // delete file if local
+export async function DELETE(req: Request) {
   try {
-    if (removed.url && removed.url.startsWith('/uploads/pamflets/')) {
-      const fp = path.join(process.cwd(), 'public', removed.url.replace('/uploads/', 'uploads/'));
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) return badRequest("id required");
+
+    const supabase: any = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("pamflets")
+      .delete()
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      const dbErr = handleDbError(error);
+      if (dbErr) return dbErr;
+      if (error.message?.includes("not found") || error.code === "PGRST116") {
+        return notFound();
+      }
+      throw error;
     }
-  } catch (e) {
-    // ignore
+    if (!data) return notFound();
+
+    // Reassign order for remaining items
+    const { data: remaining, error: remainingError } = await supabase
+      .from("pamflets")
+      .select("*")
+      .order("order", { ascending: true });
+
+    if (remainingError) {
+      const dbErr = handleDbError(remainingError);
+      if (dbErr) return dbErr;
+    }
+
+    if (remaining && remaining.length > 0) {
+      for (let i = 0; i < remaining.length; i++) {
+        await supabase
+          .from("pamflets")
+          .update({ order: i + 1 })
+          .eq("id", remaining[i].id);
+      }
+    }
+
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus pamflet: ${data?.title || id}`);
+    return ok(data as Pamflet);
+  } catch (error) {
+    const dbErr = handleDbError(error);
+    if (dbErr) return dbErr;
+    return serverError(error);
   }
-  // reassign order
-  list = list.map((it: any, i: number) => ({ ...it, order: i + 1 }));
-  fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
-  logActivity(req.headers.get("x-auth-user"), `Menghapus pamflet: ${removed?.title || id}`, req);
-  return new Response(JSON.stringify({ success: true }), { status: 200 });
 }
 
-export async function PATCH(req: NextRequest) {
-  ensureStorage();
+export async function PATCH(req: Request) {
   try {
     const body = await req.json();
+    const supabase: any = getSupabaseAdmin();
 
     // Support bulk reordering for drag and drop
     if (body.items && Array.isArray(body.items)) {
-      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-      let list = JSON.parse(raw || '[]');
+      const { data: allItems, error: allItemsError } = await supabase
+        .from("pamflets")
+        .select("*");
 
-      // Reorder items based on the array of IDs sent
+      if (allItemsError) {
+        const dbErr = handleDbError(allItemsError);
+        if (dbErr) return dbErr;
+      }
+
+      const all = allItems || [];
       const newOrderedList: any[] = [];
       body.items.forEach((id: string) => {
-        const found = list.find((it: any) => it.id === id);
-        if (found) {
-          newOrderedList.push(found);
-        }
+        const found = all.find((it: any) => it.id === id);
+        if (found) newOrderedList.push(found);
       });
-
-      // Keep any items that were not included in the payload (failsafe)
-      list.forEach((it: any) => {
+      all.forEach((it: any) => {
         if (!newOrderedList.some((n: any) => n.id === it.id)) {
           newOrderedList.push(it);
         }
       });
 
-      // Re-assign sequential order
-      const updatedList = newOrderedList.map((it: any, i: number) => ({ ...it, order: i + 1 }));
+      for (let i = 0; i < newOrderedList.length; i++) {
+        await supabase
+          .from("pamflets")
+          .update({ order: i + 1 })
+          .eq("id", newOrderedList[i].id);
+      }
 
-      fs.writeFileSync(DATA_FILE, JSON.stringify(updatedList, null, 2));
-      logActivity(req.headers.get("x-auth-user"), `Mengurutkan ulang pamflet`, req);
-      return new Response(JSON.stringify({ success: true, data: updatedList }), { status: 200 });
+      logActivity(req.headers.get("x-auth-user-id"), `Mengurutkan ulang pamflet`);
+      const { data: updated, error: updatedError } = await supabase
+        .from("pamflets")
+        .select("*")
+        .order("order", { ascending: true });
+
+      if (updatedError) {
+        const dbErr = handleDbError(updatedError);
+        if (dbErr) return dbErr;
+      }
+
+      return ok(updated as Pamflet[]);
     }
 
     const { id, direction } = body;
     if (!id || !direction) {
-      return new Response(JSON.stringify({ success: false, error: 'id and direction are required' }), { status: 400 });
+      return badRequest("id and direction are required");
     }
-    if (direction !== 'up' && direction !== 'down') {
-      return new Response(JSON.stringify({ success: false, error: 'direction must be up or down' }), { status: 400 });
-    }
-
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    let list = JSON.parse(raw || '[]');
-    // Ensure all items have an order, then sort
-    list = list.map((it: any, i: number) => ({ ...it, order: it.order ?? (i + 1) }));
-    list.sort((a: any, b: any) => a.order - b.order);
-
-    const idx = list.findIndex((i: any) => i.id === id);
-    if (idx === -1) {
-      return new Response(JSON.stringify({ success: false, error: 'not found' }), { status: 404 });
+    if (direction !== "up" && direction !== "down") {
+      return badRequest("direction must be up or down");
     }
 
-    if (direction === 'up') {
-      if (idx > 0) {
-        const temp = list[idx];
-        list[idx] = list[idx - 1];
-        list[idx - 1] = temp;
-      }
-    } else if (direction === 'down') {
-      if (idx < list.length - 1) {
-        const temp = list[idx];
-        list[idx] = list[idx + 1];
-        list[idx + 1] = temp;
-      }
+    const { data: allItems, error: allItemsError } = await supabase
+      .from("pamflets")
+      .select("*")
+      .order("order", { ascending: true });
+
+    if (allItemsError) {
+      const dbErr = handleDbError(allItemsError);
+      if (dbErr) return dbErr;
     }
 
-    // re-assign order sequentially
-    list = list.map((it: any, i: number) => ({ ...it, order: i + 1 }));
+    const items = allItems || [];
+    const idx = items.findIndex((i: any) => i.id === id);
+    if (idx === -1) return notFound();
 
-    fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2));
-    logActivity(req.headers.get("x-auth-user"), `Memindahkan pamflet: ${direction === 'up' ? 'naik' : 'turun'}`, req);
-    return new Response(JSON.stringify({ success: true, data: list }), { status: 200 });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ success: false, error: String(err) }), { status: 500 });
+    if (direction === "up" && idx > 0) {
+      const temp = items[idx];
+      items[idx] = items[idx - 1];
+      items[idx - 1] = temp;
+    } else if (direction === "down" && idx < items.length - 1) {
+      const temp = items[idx];
+      items[idx] = items[idx + 1];
+      items[idx + 1] = temp;
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      await supabase
+        .from("pamflets")
+        .update({ order: i + 1 })
+        .eq("id", items[i].id);
+    }
+
+    logActivity(req.headers.get("x-auth-user-id"), `Memindahkan pamflet: ${direction === "up" ? "naik" : "turun"}`);
+    const { data: finalList, error: finalListError } = await supabase
+      .from("pamflets")
+      .select("*")
+      .order("order", { ascending: true });
+
+    if (finalListError) {
+      const dbErr = handleDbError(finalListError);
+      if (dbErr) return dbErr;
+    }
+
+    return ok(finalList as Pamflet[]);
+  } catch (error) {
+    const dbErr = handleDbError(error);
+    if (dbErr) return dbErr;
+    return serverError(error);
   }
 }
-
-export const runtime = 'nodejs';

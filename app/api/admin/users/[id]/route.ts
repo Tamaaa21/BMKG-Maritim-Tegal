@@ -1,37 +1,48 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { hashPassword } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { hashPassword, forbidden } from "@/lib/auth";
 import { logActivity } from "@/lib/activity-log";
 
 export const runtime = "nodejs";
 
-async function getId(req: Request, context: any) {
+function getId(request: NextRequest, context: any): string | undefined {
   try {
-    const params = await context.params;
-    return params?.id || new URL(req.url).pathname.split('/').pop();
+    const pathname = request.nextUrl.pathname;
+    return pathname.split('/').pop();
   } catch {
     return undefined;
   }
 }
 
-export async function PATCH(req: Request, context: any) {
+function getRole(request: NextRequest) {
+  return request.headers.get("x-auth-user-role") || "";
+}
+
+function getUserId(request: NextRequest) {
+  return request.headers.get("x-auth-user-id") || "";
+}
+
+export async function PATCH(request: NextRequest, context: any) {
+  const role = getRole(request);
+  if (role !== "super_admin" && role !== "admin") {
+    return forbidden("Hanya admin yang dapat mengubah pengguna");
+  }
+
   try {
-    const id = await getId(req, context);
+    const id = getId(request, context);
     if (!id) return NextResponse.json({ success: false, message: "Invalid id" }, { status: 400 });
 
-    const body = await req.json();
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ success: false }, { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const body = await request.json();
+    const supabase: any = getSupabaseAdmin();
 
     const updateData: any = {};
     if (body.nama !== undefined) updateData.nama = body.nama;
-    if (body.role !== undefined) updateData.role = body.role;
+    if (body.role !== undefined) {
+      if (body.role === "super_admin" && role !== "super_admin") {
+        return forbidden("Hanya Super Admin yang dapat mengubah role ke Super Admin");
+      }
+      updateData.role = body.role;
+    }
     if (body.is_active !== undefined) updateData.is_active = body.is_active;
     if (body.password) {
       if (body.password.length < 6) {
@@ -48,7 +59,7 @@ export async function PATCH(req: Request, context: any) {
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Mengubah pengguna: ${data?.username || id}`, req);
+    logActivity(getUserId(request), `Mengubah pengguna: ${data?.username || id}`);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);
@@ -56,18 +67,17 @@ export async function PATCH(req: Request, context: any) {
   }
 }
 
-export async function DELETE(req: Request, context: any) {
+export async function DELETE(request: NextRequest, context: any) {
+  const role = getRole(request);
+  if (role !== "super_admin" && role !== "admin") {
+    return forbidden("Hanya admin yang dapat menghapus pengguna");
+  }
+
   try {
-    const id = await getId(req, context);
+    const id = getId(request, context);
     if (!id) return NextResponse.json({ success: false, message: "Invalid id" }, { status: 400 });
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ success: false }, { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase: any = getSupabaseAdmin();
 
     const { data, error } = await supabase
       .from("users")
@@ -77,7 +87,7 @@ export async function DELETE(req: Request, context: any) {
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user"), `Menghapus pengguna: ${data?.username || id}`, req);
+    logActivity(getUserId(request), `Menghapus pengguna: ${data?.username || id}`);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);

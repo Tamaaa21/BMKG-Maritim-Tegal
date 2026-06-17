@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Lock, Eye, EyeOff, Save, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lock, Eye, EyeOff, Save, User, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { showSuccess, showError } from '@/lib/sweetalert';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 export default function PengaturanPage() {
+  const { user } = useAdminUser();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -35,19 +37,9 @@ export default function PengaturanPage() {
 
     setLoading(true);
     try {
-      // Get current username from session
-      let username = "";
-      try {
-        const stored = sessionStorage.getItem("adminUser");
-        if (stored) username = JSON.parse(stored).username || "";
-      } catch {}
-
       const res = await fetch("/api/admin/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-username": username,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldPassword, newPassword }),
       });
       const data = await res.json();
@@ -67,13 +59,49 @@ export default function PengaturanPage() {
     }
   };
 
+  const roleLabel = (role: string) => {
+    if (role === "super_admin") return "Super Admin";
+    if (role === "admin") return "Admin";
+    return "Karyawan";
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Pengaturan Akun</h1>
-        <p className="text-gray-500 mt-2">Kelola kata sandi dan keamanan panel administrator.</p>
+        <p className="text-gray-500 mt-2">Kelola profil, kata sandi, dan pantau aktivitas Anda.</p>
       </div>
 
+      {/* Profile Info */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <User className="text-[#003399]" size={20} />
+          Informasi Profil
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Username</label>
+            <p className="text-gray-900 font-semibold">{user?.username || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nama Lengkap</label>
+            <p className="text-gray-900 font-semibold">{user?.nama || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Hak Akses</label>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+              user?.role === "super_admin" ? "bg-purple-50 text-purple-700" :
+              user?.role === "admin" ? "bg-blue-50 text-blue-700" :
+              "bg-gray-50 text-gray-600"
+            }`}>
+              <Shield size={12} />
+              {roleLabel(user?.role || "")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Change Password */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Lock className="text-[#003399]" size={20} />
@@ -81,8 +109,6 @@ export default function PengaturanPage() {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Old Password */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-gray-700">Kata Sandi Lama</label>
             <div className="relative">
@@ -104,7 +130,6 @@ export default function PengaturanPage() {
             </div>
           </div>
 
-          {/* New Password */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-gray-700">Kata Sandi Baru</label>
             <div className="relative">
@@ -126,7 +151,6 @@ export default function PengaturanPage() {
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-gray-700">Konfirmasi Kata Sandi Baru</label>
             <div className="relative">
@@ -160,6 +184,8 @@ export default function PengaturanPage() {
           </div>
         </form>
       </div>
+
+
     </div>
   );
 }

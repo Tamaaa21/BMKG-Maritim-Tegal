@@ -37,7 +37,6 @@ const socialLinks = [
   { icon: Facebook, href: "https://www.facebook.com/share/1D8VfEyAeb/", label: "Facebook", color: "hover:bg-blue-600" },
   { icon: Instagram, href: "https://www.instagram.com/infobmkgtegal?igsh=M3NjaDZnY2pnM2Fw", label: "Instagram", color: "hover:bg-pink-600" },
   { icon: Youtube, href: "https://www.youtube.com/channel/UC2BAR7jrw0C26ZWzIGTVSkQ", label: "YouTube", color: "hover:bg-red-600" },
-  { icon: Twitter, href: "https://twitter.com/infoBMKG", label: "Twitter", color: "hover:bg-sky-500" },
 ];
 
 export default function Footer() {
@@ -188,7 +187,7 @@ export default function Footer() {
                     className="flex items-center gap-2.5 text-xs text-blue-300 hover:text-white transition-colors group"
                   >
                     <Phone size={12} className="flex-shrink-0 group-hover:text-yellow-400 transition-colors" />
-                    <span>(0283) 356206</span>
+                    <span>0811 2562 200</span>
                   </a>
                   <a
                     href="https://wa.me/628112562200"
@@ -197,14 +196,14 @@ export default function Footer() {
                     className="flex items-center gap-2.5 text-xs text-blue-300 hover:text-white transition-colors group"
                   >
                     <Phone size={12} className="flex-shrink-0 group-hover:text-yellow-400 transition-colors" />
-                    <span>0811-2636-067 (WhatsApp)</span>
+                    <span>0811 2562 200 (WhatsApp)</span>
                   </a>
                   <a
-                    href="mailto:stamar.tegal@bmkg.go.id"
+                    href="mailto:stamet.tegal@bmkg.go.id"
                     className="flex items-center gap-2.5 text-xs text-blue-300 hover:text-white transition-colors group"
                   >
                     <Mail size={12} className="flex-shrink-0 group-hover:text-yellow-400 transition-colors" />
-                    <span>stamar.tegal@bmkg.go.id</span>
+                    <span>stamet.tegal@bmkg.go.id</span>
                   </a>
                 </div>
               </div>

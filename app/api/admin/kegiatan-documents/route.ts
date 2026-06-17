@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { uploadMultipleFiles } from "@/lib/upload";
 import { logActivity } from "@/lib/activity-log";
+import { ok, badRequest, serverError } from "@/lib/response";
+import type { KegiatanDocument } from "@/lib/types";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function getYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -20,113 +24,82 @@ function getYouTubeId(url: string): string | null {
 
 export async function POST(req: Request) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return NextResponse.json({ success: false, message: "Supabase not configured" }, { status: 500 });
-    const supabase = createClient(url, serviceKey as string);
+    const supabase: any = getSupabaseAdmin();
 
-    const form = await (req as any).formData();
-    const files = form.getAll("files") as any[];
-    const singleFile = form.get("file") as any;
-    const title = (form.get("title") as any)?.toString() || singleFile?.name || `kegiatan-${Date.now()}`;
-    const description = (form.get("description") as any)?.toString() || null;
-    const event_date = (form.get("event_date") as any)?.toString() || null;
-    const category = (form.get("category") as any)?.toString() || null;
-    const youtube_url = (form.get("youtube_url") as any)?.toString() || null;
+    const form = await req.formData();
+    const files = form.getAll("files") as File[];
+    const singleFile = form.get("file") as File | null;
+    const title = form.get("title")?.toString() || singleFile?.name || `kegiatan-${Date.now()}`;
+    const description = form.get("description")?.toString() || null;
+    const event_date = form.get("event_date")?.toString() || null;
+    const youtube_url = form.get("youtube_url")?.toString() || null;
 
     const allFiles = files.length > 0 ? files : (singleFile ? [singleFile] : []);
-    if (allFiles.length === 0 && !youtube_url) return NextResponse.json({ success: false, message: "No file or YouTube link provided" }, { status: 400 });
-
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "public";
-
-    const uploadFile = async (file: any) => {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const path = `kegiatan/${filename}`;
-
-      let { data: uploadData, error: uploadError } = await supabase.storage.from(bucket).upload(path, buffer, {
-        contentType: file.type,
-        upsert: true,
-      });
-
-      if (uploadError) {
-        try {
-          await supabase.storage.createBucket(bucket, { public: true });
-          const retry = await supabase.storage.from(bucket).upload(path, buffer, {
-            contentType: file.type,
-            upsert: true,
-          });
-          uploadData = retry.data;
-          uploadError = retry.error;
-        } catch (bErr) {
-          console.error("Bucket create or retry failed", bErr);
-        }
-      }
-
-      if (uploadError) throw uploadError;
-      if (!uploadData || !uploadData.path) throw new Error('Upload succeeded but returned no path');
-
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(uploadData.path);
-      return { url: (urlData as any)?.publicUrl || "", path: uploadData.path, type: file.type };
-    };
-
-    let insertObj: any = { title };
-
-    if (allFiles.length > 0) {
-      const uploaded = await Promise.all(allFiles.map(uploadFile));
-      const imageUrls = uploaded.map(u => u.url);
-      const firstFile = uploaded[0];
-      insertObj.url = firstFile.url;
-      insertObj.file_path = firstFile.path;
-      insertObj.file_type = firstFile.type;
-      insertObj.image_urls = imageUrls;
-    } else if (youtube_url) {
-      const ytId = getYouTubeId(youtube_url);
-      if (ytId) insertObj.url = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    if (allFiles.length === 0 && !youtube_url) {
+      return badRequest("No file or YouTube link provided");
     }
 
-    if (description) insertObj.description = description;
-    if (event_date) insertObj.event_date = event_date;
-    if (category) insertObj.category = category;
-    if (youtube_url) insertObj.youtube_url = youtube_url;
+    const insertData: Record<string, unknown> = { title };
 
-    const { data: insertData, error: insertError } = await supabase.from("kegiatan_documents").insert(insertObj).select().single();
+    if (allFiles.length > 0) {
+      const uploaded = await uploadMultipleFiles(allFiles, "kegiatan");
+      const imageUrls = uploaded.map(u => u.url);
+      const firstFile = uploaded[0];
+      insertData.url = firstFile.url;
+      insertData.file_path = firstFile.path;
+      insertData.file_type = allFiles[0].type;
+      insertData.image_urls = imageUrls;
+    } else if (youtube_url) {
+      const ytId = getYouTubeId(youtube_url);
+      if (ytId) insertData.url = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    }
+
+    if (description) insertData.description = description;
+    if (event_date) insertData.event_date = event_date;
+    if (youtube_url) insertData.youtube_url = youtube_url;
+
+    const { data: result, error: insertError } = await supabase
+      .from("kegiatan_documents")
+      .insert(insertData)
+      .select()
+      .single();
+
     if (insertError) {
-      const msg = (insertError as any)?.message || String(insertError);
+      const msg = String(insertError.message || insertError);
       if (msg.includes("Could not find the table")) {
-        return NextResponse.json({ success: false, message: "Tabel kegiatan_documents belum dibuat di database. Jalankan migration SQL di Supabase dashboard." }, { status: 500 });
+        return NextResponse.json({
+          success: false,
+          message: "Tabel kegiatan_documents belum dibuat di database. Jalankan migration SQL di Supabase dashboard.",
+        }, { status: 500 });
       }
       throw insertError;
     }
 
-    logActivity(req.headers.get("x-auth-user"), `Menambah dokumentasi kegiatan: ${title}`, req);
-
-    return NextResponse.json({ success: true, data: insertData });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah dokumentasi kegiatan: ${title}`);
+    return ok(result as KegiatanDocument);
+  } catch (error) {
+    return serverError(error);
   }
 }
 
 export async function GET() {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceKey) return NextResponse.json({ success: false, data: [] }, { status: 500 });
-    const supabase = createClient(url, serviceKey as string);
-    const { data, error } = await supabase.from("kegiatan_documents").select("*").order("created_at", { ascending: false });
+    const supabase: any = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("kegiatan_documents")
+      .select("*")
+      .order("created_at", { ascending: false });
+
     if (error) {
-      const msg = (error as any)?.message || String(error);
+      const msg = String(error.message || error);
       if (msg.includes("Could not find the table")) {
         console.warn("kegiatan_documents table missing in Supabase schema");
-        return NextResponse.json({ success: true, data: [] });
+        return ok([] as KegiatanDocument[]);
       }
       throw error;
     }
-    return NextResponse.json({ success: true, data: data || [] });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ success: false, message: error.message || String(error) }, { status: 500 });
+    return ok(data as KegiatanDocument[]);
+  } catch (error) {
+    return serverError(error);
   }
 }

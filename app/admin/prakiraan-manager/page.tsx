@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, X, Edit3, Trash2, Plus, Calendar, Clock, FolderOpen, Search, Eye, CheckCircle2, RefreshCw, FileText, ChevronRight, ChevronDown, Image } from "lucide-react";
+import { Upload, X, Edit3, Trash2, Plus, Calendar, Clock, FolderOpen, Search, Eye, CheckCircle2, FileText, ChevronRight, ChevronDown, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
+import { useAdminUser } from '@/hooks/useAdminUser';
 import "react-quill-new/dist/quill.snow.css";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -36,19 +37,6 @@ interface PrakiraanItem {
   display_type?: string;
   gallery_images?: string[];
 }
-
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch { }
-  return "";
-}
-
-const isAdmin = () => {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-};
 
 const formatToDateOnly = (isoString?: string) => {
   if (!isoString) return "";
@@ -82,6 +70,7 @@ const slugify = (text: string) =>
   text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 export default function PrakiraanManager() {
+  const { isAdmin, user } = useAdminUser();
   const [items, setItems] = useState<PrakiraanItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -246,11 +235,7 @@ export default function PrakiraanManager() {
 
     setSaving(true);
     try {
-      let username = "admin";
-      try {
-        const token = typeof window !== "undefined" ? sessionStorage.getItem("adminToken") : null;
-        if (token) username = atob(token).split(":")[0] || "admin";
-      } catch { }
+      const username = user?.username || "admin";
 
       const finalSlug = editingEntry.slug || slugify(editingEntry.title);
 
@@ -409,35 +394,6 @@ export default function PrakiraanManager() {
   return (
     <div className="space-y-6 max-w-full">
 
-      {/* Auto-Switch Bar */}
-      {/* <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-blue-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-            <RefreshCw size={14} />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-gray-900">Auto-Switch Prakiraan</p>
-            <p className="text-xs text-gray-500">Konten yang sudah kadaluwarsa dan memiliki jadwal berikutnya akan otomatis dipromosikan.</p>
-          </div>
-        </div>
-        <button
-          onClick={async () => {
-            const confirm = await showConfirm('Jalankan Auto-Switch?', "Konten expired dengan jadwal berikutnya akan dipromosikan.");
-            if (!confirm.isConfirmed) return;
-            try {
-              const res = await fetch("/api/admin/prakiraan-images/auto-switch", { method: "POST" });
-              const json = await res.json();
-              showSuccess('Berhasil', json.message || "Selesai");
-              fetchItems();
-            } catch { showError('Gagal', "Gagal menjalankan auto-switch"); }
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-xl transition-colors text-xs border border-blue-200"
-        >
-          <RefreshCw size={12} />
-          Jalankan Auto-Switch
-        </button>
-      </div> */}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -548,7 +504,7 @@ export default function PrakiraanManager() {
                   <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="py-4 px-6 min-w-[280px]">
                       <div className="flex gap-3 items-center">
-                        <img src={item.url} alt="Thumb" className="w-14 h-9 object-cover rounded-lg border border-gray-200/60 bg-gray-50 shrink-0" />
+                        <img src={item.url} alt="Thumb" loading="lazy" className="w-14 h-9 object-cover rounded-lg border border-gray-200/60 bg-gray-50 shrink-0" />
                         <div className="min-w-0">
                           <p className="font-bold text-gray-900 truncate leading-snug">{item.title}</p>
                           <p className="text-[10px] text-gray-400 mt-1">
@@ -585,7 +541,7 @@ export default function PrakiraanManager() {
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => openModal("edit", item)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors" title="Edit"><Edit3 size={14} /></button>
-                        {isAdmin() && <button onClick={() => deleteEntry(item.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors" title="Hapus"><Trash2 size={14} /></button>}
+                        {isAdmin && <button onClick={() => deleteEntry(item.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors" title="Hapus"><Trash2 size={14} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -715,7 +671,7 @@ export default function PrakiraanManager() {
                 <div className="flex items-center gap-4">
                   {editingEntry.url && (
                     <div className="w-24 h-16 rounded-xl overflow-hidden border bg-gray-100 shrink-0">
-                      <img src={editingEntry.url} className="w-full h-full object-cover" alt="Preview" />
+                      <img src={editingEntry.url} alt="Preview" loading="lazy" className="w-full h-full object-cover" />
                     </div>
                   )}
                   <label className="flex-1 flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 hover:border-[#003399] rounded-xl hover:bg-blue-50/10 cursor-pointer transition-all">
@@ -735,7 +691,7 @@ export default function PrakiraanManager() {
                 <div className="flex flex-wrap gap-2 mb-2">
                   {(editingEntry.gallery_images || []).map((img, idx) => (
                     <div key={idx} className="relative w-16 h-12 rounded-lg overflow-hidden border bg-gray-100 group">
-                      <img src={img} className="w-full h-full object-cover" alt={`Galeri ${idx}`} />
+                      <img src={img} alt={`Galeri ${idx}`} loading="lazy" className="w-full h-full object-cover" />
                       <button
                         onClick={() => {
                           const newGal = [...(editingEntry.gallery_images || [])];
@@ -872,7 +828,7 @@ export default function PrakiraanManager() {
                       <div className="flex gap-1">
                         <button onClick={() => { setCatForm({ id: cat.id, name: cat.name, description: cat.description || "", icon: cat.icon }); setShowCatForm(true); }}
                           className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"><Edit3 size={14} /></button>
-                        {isAdmin() && (
+                        {isAdmin && (
                           <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors"><Trash2 size={14} /></button>
                         )}
                       </div>

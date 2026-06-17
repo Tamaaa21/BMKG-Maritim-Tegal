@@ -5,19 +5,8 @@ import { Plus, Edit2, Trash2, HelpCircle, Network, ArrowLeft, Loader2, AlertCirc
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { showSuccess, showError, showConfirm } from '@/lib/sweetalert';
-
-function getUserRole(): string {
-  try {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem("adminUser") : null;
-    if (stored) return JSON.parse(stored).role || "";
-  } catch {}
-  return "";
-}
-
-const isAdmin = () => {
-  const role = getUserRole();
-  return role === "admin" || role === "super_admin";
-};
+import { TableSkeleton } from '@/components/LoadingSkeleton';
+import { useAdminUser } from '@/hooks/useAdminUser';
 
 interface StrukturItem {
   id: string;
@@ -29,6 +18,7 @@ interface StrukturItem {
 }
 
 export default function StrukturManagerPage() {
+  const { isAdmin } = useAdminUser();
   const [items, setItems] = useState<StrukturItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -211,10 +201,7 @@ export default function StrukturManagerPage() {
       {/* Main Table */}
       <div className="bg-white border border-slate-200/85 rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center">
-            <Loader2 className="animate-spin text-[#003399] mx-auto mb-3" size={28} />
-            <p className="text-slate-500 text-sm">Memuat data struktur organisasi...</p>
-          </div>
+          <TableSkeleton rows={5} cols={5} />
         ) : items.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
             <HelpCircle className="mx-auto text-slate-400 mb-2" size={32} />
@@ -253,7 +240,7 @@ export default function StrukturManagerPage() {
                       <td className="px-6 py-4 text-center font-bold text-slate-700">{item.urutan}</td>
                       <td className="px-6 py-4 text-center">
                         {item.inisial.startsWith("http") || item.inisial.startsWith("/") ? (
-                          <img src={item.inisial} alt={item.jabatan} className="w-8 h-8 rounded-full mx-auto object-cover border border-slate-200" />
+                          <img src={item.inisial} alt={item.jabatan} loading="lazy" className="w-8 h-8 rounded-full mx-auto object-cover border border-slate-200" />
                         ) : (
                           <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs uppercase ${badgeColor}`}>
                             {item.inisial}
@@ -274,7 +261,7 @@ export default function StrukturManagerPage() {
                           >
                             <Edit2 size={16} />
                           </button>
-                          {isAdmin() && (
+                          {isAdmin && (
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors"
@@ -345,7 +332,7 @@ export default function StrukturManagerPage() {
                   <div className="flex gap-2 items-center">
                     {inisial.startsWith("http") || inisial.startsWith("/") ? (
                       <div className="relative w-10 h-10 shrink-0 rounded-full overflow-hidden border border-slate-200">
-                        <img src={inisial} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={inisial} alt="Preview" loading="lazy" className="w-full h-full object-cover" />
                       </div>
                     ) : null}
                     <Input
