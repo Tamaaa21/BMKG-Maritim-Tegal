@@ -62,42 +62,42 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 bg-[#0a192f]">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/30 blur-[120px] mix-blend-screen animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/20 blur-[100px] mix-blend-screen" />
-      <div className="absolute top-[20%] right-[10%] w-[20%] h-[20%] rounded-full bg-indigo-500/20 blur-[80px] mix-blend-screen animate-bounce" style={{ animationDuration: '7s' }} />
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 bg-gradient-to-br from-[#001133] via-[#002266] to-[#003399]">
+      {/* Modern ambient glows for a premium look */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-400/10 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] p-8 overflow-hidden">
+        <div className="bg-white border border-slate-200/60 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-8 md:p-10 relative">
           
           {/* Subtle top highlight */}
-          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#003399]/20 to-transparent" />
 
-          <div className="text-center mb-8 relative">
-            <div className="w-20 h-20 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-500/30 transform rotate-3 hover:rotate-0 transition-transform duration-300">
-              <LogIn className="text-white drop-shadow-md" size={36} />
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-white p-2 rounded-2xl shadow-md border border-slate-100 flex items-center justify-center mx-auto mb-4 hover:scale-105 transition-transform duration-350">
+              <img src="/bmkg-logo.png" alt="BMKG Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Admin Panel</h1>
-            <p className="text-blue-200 text-sm mt-2 font-medium flex items-center justify-center gap-1">
-              <Droplets size={14} className="text-cyan-400" />
-              BMKG Maritim Tegal
-              <Wind size={14} className="text-cyan-400" />
+            <span className="text-[10px] font-bold text-[#003399] uppercase tracking-widest bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
+              Portal Admin
+            </span>
+            <h1 className="text-xl font-bold text-gray-800 mt-4">BMKG Maritim Tegal</h1>
+            <p className="text-gray-400 text-xs mt-1.5 leading-relaxed font-medium">
+              Stasiun Meteorologi Maritim Tegal
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 backdrop-blur-sm rounded-xl p-3.5 flex gap-3 animate-in fade-in slide-in-from-top-2">
-                <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
-                <p className="text-red-100 text-sm font-medium">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 flex gap-3 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+                <p className="text-red-700 text-sm font-medium leading-normal">{error}</p>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-blue-100 pl-1">Username</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 pl-1">Username</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-300 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#003399] transition-colors">
                   <User size={18} />
                 </div>
                 <Input
@@ -105,16 +105,16 @@ export default function AdminLoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Masukkan username"
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-blue-300/50 focus-visible:ring-cyan-500 focus-visible:border-cyan-500 h-12 rounded-xl transition-all"
+                  className="pl-10 bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus-visible:ring-[#003399] focus-visible:border-[#003399] h-12 rounded-xl transition-all focus:bg-white"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-blue-100 pl-1">Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 pl-1">Password</label>
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-300 group-focus-within:text-cyan-400 transition-colors">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#003399] transition-colors">
                   <Lock size={18} />
                 </div>
                 <Input
@@ -122,15 +122,15 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password"
-                  className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-blue-300/50 focus-visible:ring-cyan-500 focus-visible:border-cyan-500 h-12 rounded-xl transition-all"
+                  className="pl-10 bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 focus-visible:ring-[#003399] focus-visible:border-[#003399] h-12 rounded-xl transition-all focus:bg-white"
                   required
                 />
               </div>
             </div>
 
             <div className="pt-2">
-              <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-100">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Verifikasi Keamanan</p>
+              <div className="bg-slate-50 p-4 rounded-xl shadow-inner border border-slate-200/60">
+                <p className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wider">Verifikasi Keamanan</p>
                 <DistortedCaptcha 
                   ref={captchaRef} 
                   onValidateChange={setCaptchaValid} 
@@ -141,7 +141,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 mt-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+              className="w-full h-12 mt-4 bg-[#003399] hover:bg-[#002a80] text-white font-semibold rounded-xl transition-all duration-300 shadow-md shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/20 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -151,7 +151,12 @@ export default function AdminLoginPage() {
                   </svg>
                   Memproses...
                 </>
-              ) : "Masuk ke Sistem"}
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  Masuk ke Sistem
+                </>
+              )}
             </button>
           </form>
         </div>

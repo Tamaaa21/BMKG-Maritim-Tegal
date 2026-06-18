@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ChevronLeft, MapPin, Anchor, Waves, TrendingUp, Sun, X, AlertCircle, Calendar } from "lucide-react";
+import { ChevronRight, ChevronLeft, MapPin, Anchor, Waves, TrendingUp, Sun, X, AlertCircle, Calendar, ArrowRight, ArrowLeft } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,21 @@ function getIcon(name?: string) {
   return CATEGORY_ICONS[name || "Sun"] || Sun;
 }
 
+function getEndDateColor(waktuBerakhir: string) {
+  const now = new Date();
+  const end = new Date(waktuBerakhir);
+  const diffTime = end.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 2) {
+    return "text-emerald-600 font-semibold";
+  } else if (diffDays === 2) {
+    return "text-amber-500 font-semibold";
+  } else {
+    return "text-rose-600 font-semibold";
+  }
+}
+
 function CategorySlider({ categories, activeCategory, setActiveCategory, getIcon }: {
   categories: any[];
   activeCategory: string | null;
@@ -20,19 +35,17 @@ function CategorySlider({ categories, activeCategory, setActiveCategory, getIcon
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const scroll = (dir: "left" | "right") => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
-    }
-  };
-
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = () => {
     if (scrollRef.current) {
-      setCanScrollLeft(scrollRef.current.scrollLeft > 0);
-      setCanScrollRight(scrollRef.current.scrollLeft < scrollRef.current.scrollWidth - scrollRef.current.clientWidth - 1);
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 2 || activeCategory !== null);
+      setCanScrollRight(
+        scrollLeft < scrollWidth - clientWidth - 2 ||
+        (activeCategory !== null && categories.findIndex(c => c.id === activeCategory) < categories.length - 1)
+      );
     }
   };
 
@@ -40,62 +53,131 @@ function CategorySlider({ categories, activeCategory, setActiveCategory, getIcon
     const el = scrollRef.current;
     if (el) {
       el.addEventListener("scroll", checkScroll);
-      checkScroll();
-      return () => el.removeEventListener("scroll", checkScroll);
+      window.addEventListener("resize", checkScroll);
+
+      const timer = setTimeout(checkScroll, 200);
+
+      return () => {
+        el.removeEventListener("scroll", checkScroll);
+        window.removeEventListener("resize", checkScroll);
+        clearTimeout(timer);
+      };
     }
-  }, []);
+  }, [categories, activeCategory]);
+
+  // Scroll active category into view automatically when selection changes
+  useEffect(() => {
+    if (activeCategory === null) {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
+      }
+    } else {
+      const activeEl = scrollRef.current?.querySelector(`[data-category-id="${activeCategory}"]`);
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center"
+        });
+      }
+    }
+    const timer = setTimeout(checkScroll, 350);
+    return () => clearTimeout(timer);
+  }, [activeCategory]);
+
+  const handleArrowClick = (dir: "left" | "right") => {
+    const currentIndex = activeCategory === null ? -1 : categories.findIndex(c => c.id === activeCategory);
+    if (dir === "right") {
+      if (currentIndex < categories.length - 1) {
+        setActiveCategory(categories[currentIndex + 1].id);
+      }
+    } else {
+      if (currentIndex === 0) {
+        setActiveCategory(null);
+      } else if (currentIndex > 0) {
+        setActiveCategory(categories[currentIndex - 1].id);
+      }
+    }
+  };
+
+  const isFirstCategory = activeCategory === null;
+  const isLastCategory = activeCategory !== null && categories.length > 0 && categories[categories.length - 1].id === activeCategory;
 
   const btnClass = (isActive: boolean) =>
-    `inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
-      isActive
-        ? "bg-[#003399] text-white shadow-md"
-        : "bg-white text-gray-600 border border-gray-200 hover:border-[#003399] hover:text-[#003399]"
+    `inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 flex-shrink-0 shadow-sm border cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-98 ${isActive
+      ? "bg-[#003399] text-white border-[#003399] shadow-md hover:bg-[#002b80] hover:shadow-lg"
+      : "bg-white text-gray-700 border-gray-200/80 hover:border-[#003399] hover:text-[#003399] hover:shadow-md"
     }`;
 
+  const shouldShowArrows = categories.length > 5 || canScrollLeft || canScrollRight;
+
   return (
-    <div className="relative mb-10">
-      {canScrollLeft && (
-        <button
-          onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:bg-gray-50"
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={16} className="text-gray-600" />
-        </button>
-      )}
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide py-1 px-1 justify-start md:justify-center"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+    <div className="relative max-w-5xl mx-auto mb-10 flex items-center">
+      {/* Fixed "Semua" Pill on the left */}
+      <div className="pl-1 pr-3 border-r border-gray-300/80 flex-shrink-0">
         <button
           onClick={() => setActiveCategory(null)}
           className={btnClass(!activeCategory)}
         >
           Semua
         </button>
-        {categories.map((cat) => {
-          const Icon = getIcon(cat.icon);
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={btnClass(activeCategory === cat.id)}
-            >
-              <Icon size={14} />
-              {cat.name}
-            </button>
-          );
-        })}
       </div>
-      {canScrollRight && (
-        <button
-          onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:bg-gray-50"
-          aria-label="Scroll right"
+
+      {/* Scrollable Container Wrapper */}
+      <div className="relative flex-1 overflow-hidden pl-3">
+        {/* Left Fade */}
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none" />
+        )}
+
+        {/* Right Fade */}
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
+        )}
+
+        <div
+          ref={scrollRef}
+          className="flex gap-2.5 overflow-x-auto scrollbar-hide py-1 px-2 justify-start scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <ChevronRight size={16} className="text-gray-600" />
-        </button>
+          {categories.map((cat) => {
+            const Icon = getIcon(cat.icon);
+            return (
+              <button
+                key={cat.id}
+                data-category-id={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={btnClass(activeCategory === cat.id)}
+              >
+                <Icon size={14} className="shrink-0" />
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Navigation Buttons on the Right Side */}
+      {shouldShowArrows && (
+        <div className="flex items-center gap-1.5 pl-3 pr-1 border-l border-gray-200/80 flex-shrink-0">
+          <button
+            onClick={() => handleArrowClick("left")}
+            disabled={isFirstCategory}
+            className="w-9 h-9 rounded-full bg-white border border-gray-200/80 text-gray-600 hover:text-[#003399] hover:border-[#003399]/40 hover:bg-blue-50/50 active:bg-[#003399] active:text-white active:border-[#003399] shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:shadow-none"
+            aria-label="Previous category"
+          >
+            <ArrowLeft size={16} />
+          </button>
+
+          <button
+            onClick={() => handleArrowClick("right")}
+            disabled={isLastCategory}
+            className="w-9 h-9 rounded-full bg-white border border-gray-200/80 text-gray-600 hover:text-[#003399] hover:border-[#003399]/40 hover:bg-blue-50/50 active:bg-[#003399] active:text-white active:border-[#003399] shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:pointer-events-none disabled:shadow-none"
+            aria-label="Next category"
+          >
+            <ArrowRight size={16} />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -123,9 +205,8 @@ const ExpiredPopup = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex justify-center">
-        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-          isScheduled ? "bg-blue-100" : "bg-amber-100"
-        }`}>
+        <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isScheduled ? "bg-blue-100" : "bg-amber-100"
+          }`}>
           <AlertCircle size={28} className={isScheduled ? "text-blue-500" : "text-amber-500"} />
         </div>
       </div>
@@ -137,30 +218,13 @@ const ExpiredPopup = ({
           {isScheduled ? (
             <>Informasi prakiraan <span className="font-semibold text-gray-700">&quot;{title}&quot;</span> belum mulai tayang. Silakan kembali lagi pada jadwal yang telah ditentukan.</>
           ) : isUnupdated ? (
-            <>Informasi prakiraan <span className="font-semibold text-gray-700">&quot;{title}&quot;</span> belum diperbarui ke versi terbaru. Anda tetap dapat melihat informasi sebelumnya.</>
+            <>Informasi prakiraan <span className="font-semibold text-gray-700">&quot;{title}&quot;</span> belum diperbarui ke versi terbaru.</>
           ) : (
             <>Informasi prakiraan <span className="font-semibold text-gray-700">&quot;{title}&quot;</span> sudah melewati masa tayang. Silakan kembali lagi nanti untuk informasi terbaru.</>
           )}
         </p>
       </div>
-      <div className="flex gap-2">
-        {isUnupdated && onViewDetail && (
-          <button
-            onClick={onViewDetail}
-            className="flex-1 px-4 py-2.5 bg-[#003399] hover:bg-[#0044cc] text-white font-semibold rounded-xl transition-colors text-sm"
-          >
-            Lihat Detail
-          </button>
-        )}
-        <button
-          onClick={onClose}
-          className={`px-4 py-2.5 font-semibold rounded-xl transition-colors text-sm ${
-            isUnupdated ? "border border-gray-200 text-gray-600 flex-1 hover:bg-gray-50" : "w-full bg-[#003399] hover:bg-[#0044cc] text-white"
-          }`}
-        >
-          {isUnupdated ? "Batal" : "Mengerti"}
-        </button>
-      </div>
+
     </div>
   </div>
 );
@@ -276,8 +340,15 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
     <section id="prakiraan" className="py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 md:px-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">Informasi Prakiraan</h2>
-          <p className="text-gray-500 mt-2">Pilih kategori informasi prakiraan yang Anda butuhkan</p>
+          <span className="inline-block px-3.5 py-1.5 bg-blue-50 border border-blue-200 text-[#003399] text-xs font-bold rounded-full uppercase tracking-wider mb-3">
+            Informasi Terkini
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mt-1">
+            Informasi Prakiraan
+          </h2>
+          <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+            Pilih kategori informasi prakiraan di bawah ini untuk melihat kondisi cuaca, maritim, pasang surut, dan pelabuhan secara real-time.
+          </p>
         </div>
 
         {/* Category Slider */}
@@ -299,9 +370,10 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
               const CategoryIcon = getIcon(card.category?.icon);
               return (
                 <button
-                  key={card.id || i}
+                  key={`${activeCategory || "all"}-${card.id || i}`}
                   onClick={() => handleCardClick(card)}
-                  className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:border-[#003399] transition-all duration-300 group flex flex-col text-left h-full relative"
+                  className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-[#003399] hover:-translate-y-1.5 transition-all duration-300 group flex flex-col text-left h-full relative animate-fade-in-up"
+                  style={{ animationDelay: `${i * 50}ms`, opacity: 0 }}
                 >
                   <div className="relative h-44 w-full overflow-hidden flex-shrink-0">
                     <img
@@ -325,15 +397,25 @@ export default function PrakiraanSection({ limit }: { limit?: number }) {
                       <h3 className="font-bold text-sm md:text-base mb-1.5 leading-snug line-clamp-2 text-gray-900 group-hover:text-[#003399] transition-colors capitalize">
                         {card.title}
                       </h3>
-                      <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-2">
-                        <Calendar size={13} className="shrink-0 text-[#003399]" />
-                        <span>
-                          {card.waktu_mulai 
-                            ? new Date(card.waktu_mulai).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-                            : card.created_at 
-                              ? new Date(card.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-                              : "-"}
-                        </span>
+                      <div className="flex items-start gap-1.5 text-gray-500 text-[11px] md:text-xs mt-2.5">
+                        <Calendar size={13} className="shrink-0 text-[#003399] mt-0.5" />
+                        <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 leading-snug">
+                          <span>
+                            {card.waktu_mulai
+                              ? new Date(card.waktu_mulai).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                              : card.created_at
+                                ? new Date(card.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                                : "-"}
+                          </span>
+                          {card.waktu_berakhir && (
+                            <>
+                              <span className="text-gray-400 font-light mx-0.5">s/d</span>
+                              <span className={getEndDateColor(card.waktu_berakhir)}>
+                                {new Date(card.waktu_berakhir).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       {card.next_url && (
                         <div className="mt-3 flex items-center gap-2 text-[10px] text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5">
