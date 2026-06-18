@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       if (dbErr) return dbErr;
       throw error;
     }
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah pamflet: ${title}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah pamflet: ${title}`, req.headers.get("x-auth-user-username"));
     return ok(data as Pamflet);
   } catch (error) {
     const dbErr = handleDbError(error);
@@ -137,7 +137,7 @@ export async function DELETE(req: Request) {
       }
     }
 
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus pamflet: ${data?.title || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus pamflet: ${data?.title || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as Pamflet);
   } catch (error) {
     const dbErr = handleDbError(error);
@@ -181,7 +181,7 @@ export async function PATCH(req: Request) {
           .eq("id", newOrderedList[i].id);
       }
 
-      logActivity(req.headers.get("x-auth-user-id"), `Mengurutkan ulang pamflet`);
+      logActivity(req.headers.get("x-auth-user-id"), `Mengurutkan ulang pamflet`, req.headers.get("x-auth-user-username"));
       const { data: updated, error: updatedError } = await supabase
         .from("pamflets")
         .select("*")
@@ -234,7 +234,7 @@ export async function PATCH(req: Request) {
         .eq("id", items[i].id);
     }
 
-    logActivity(req.headers.get("x-auth-user-id"), `Memindahkan pamflet: ${direction === "up" ? "naik" : "turun"}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Memindahkan pamflet: ${direction === "up" ? "naik" : "turun"}`, req.headers.get("x-auth-user-username"));
     const { data: finalList, error: finalListError } = await supabase
       .from("pamflets")
       .select("*")

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah layanan: ${parsed.data.nama_layanan}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah layanan: ${parsed.data.nama_layanan}`, req.headers.get("x-auth-user-username"));
     return ok(data as LayananCard);
   } catch (error) {
     return serverError(error);

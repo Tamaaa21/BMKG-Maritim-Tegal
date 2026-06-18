@@ -10,6 +10,10 @@ function getRole(req: NextRequest) {
   return req.headers.get("x-auth-user-role") || "";
 }
 
+function getUsername(req: NextRequest) {
+  return req.headers.get("x-auth-user-username") || "";
+}
+
 function getUserId(req: NextRequest) {
   return req.headers.get("x-auth-user-id") || "";
 }
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
-    logActivity(getUserId(request), `Menambah pengguna: ${username}`);
+    logActivity(getUserId(request), `Menambah pengguna: ${username}`, getUsername(request));
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);

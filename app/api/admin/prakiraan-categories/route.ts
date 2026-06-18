@@ -51,8 +51,8 @@ export async function POST(req: Request) {
       }
       throw error;
     }
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`);
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`, req.headers.get("x-auth-user-username"));
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah kategori prakiraan: ${name}`, req.headers.get("x-auth-user-username"));
     return NextResponse.json({ success: true, data: data as PrakiraanCategory });
   } catch (error: any) {
     console.error(error);

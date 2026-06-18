@@ -21,7 +21,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus hero slider: ${data?.name || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus hero slider: ${data?.name || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as HeroImage);
   } catch (error) {
     return serverError(error);
@@ -53,7 +53,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Mengubah hero slider: ${data?.name || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah hero slider: ${data?.name || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as HeroImage);
   } catch (error) {
     return serverError(error);

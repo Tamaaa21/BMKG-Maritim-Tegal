@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import supabase from "@/lib/supabaseBrowser";
 import { toast } from "sonner";
 
@@ -23,12 +23,14 @@ const AdminRealtimeContext = createContext<AdminRealtimeContextType | undefined>
 export function AdminRealtimeProvider({ children }: { children: React.ReactNode }) {
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [unreadBukuTamu, setUnreadBukuTamu] = useState(0);
+  const previousBukuCountRef = useRef(0);
 
   const resetUnreadBukuTamu = useCallback(() => setUnreadBukuTamu(0), []);
 
   const onNewBukuTamu = useCallback(() => {
     setStats(s => ({ ...s, bukuTamu: s.bukuTamu + 1 }));
     setUnreadBukuTamu(u => u + 1);
+    previousBukuCountRef.current += 1;
     toast.success("Buku Tamu Baru", {
       description: "Ada pengunjung baru yang mengisi buku tamu.",
       duration: 5000,
@@ -37,7 +39,6 @@ export function AdminRealtimeProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const client = supabase;
-    let previousBukuCount = 0;
     let pollingTimer: ReturnType<typeof setInterval> | null = null;
 
     const fetchInitial = async () => {
@@ -63,7 +64,7 @@ export function AdminRealtimeProvider({ children }: { children: React.ReactNode 
         const nol = await nolRes.json().catch(() => ({ count: 0 }));
 
         const bukuCount = typeof buku.count === "number" ? buku.count : 0;
-        previousBukuCount = bukuCount;
+        previousBukuCountRef.current = bukuCount;
 
         setStats({
           bukuTamu: bukuCount,
@@ -82,14 +83,14 @@ export function AdminRealtimeProvider({ children }: { children: React.ReactNode 
       try {
         const res = await fetch("/api/admin/stats/buku-tamu");
         const json = await res.json();
-        const currentCount = typeof json.count === "number" ? json.count : previousBukuCount;
-        if (currentCount > previousBukuCount) {
-          const diff = currentCount - previousBukuCount;
+        const currentCount = typeof json.count === "number" ? json.count : previousBukuCountRef.current;
+        if (currentCount > previousBukuCountRef.current) {
+          const diff = currentCount - previousBukuCountRef.current;
           for (let i = 0; i < diff; i++) {
             onNewBukuTamu();
           }
         }
-        previousBukuCount = currentCount;
+        previousBukuCountRef.current = currentCount;
       } catch {
         // ignore polling errors
       }

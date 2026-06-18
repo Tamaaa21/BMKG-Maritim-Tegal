@@ -10,6 +10,10 @@ function getUserId(request: NextRequest) {
   return request.headers.get("x-auth-user-id") || "";
 }
 
+function getUsername(request: NextRequest) {
+  return request.headers.get("x-auth-user-username") || "";
+}
+
 function getRole(request: NextRequest) {
   return request.headers.get("x-auth-user-role") || "";
 }
@@ -52,12 +56,12 @@ export async function DELETE(request: NextRequest) {
     if (ids.length > 0) {
       const { error } = await supabase.from("buku_tamu").delete().in("id", ids);
       if (error) throw error;
-      logActivity(getUserId(request), `Menghapus ${ids.length} data buku tamu`);
+      logActivity(getUserId(request), `Menghapus ${ids.length} data buku tamu`, getUsername(request));
       return NextResponse.json({ success: true, message: "Data terpilih berhasil dihapus" });
     } else {
       const { error } = await supabase.from("buku_tamu").delete().neq("id", "0");
       if (error) throw error;
-      logActivity(getUserId(request), "Menghapus semua data buku tamu");
+      logActivity(getUserId(request), "Menghapus semua data buku tamu", getUsername(request));
       return NextResponse.json({ success: true, message: "Semua data berhasil dihapus" });
     }
   } catch (error: any) {

@@ -19,7 +19,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus layanan: ${data?.nama_layanan || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus layanan: ${data?.nama_layanan || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as LayananCard);
   } catch (error) {
     return serverError(error);
@@ -52,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Mengubah layanan: ${data?.nama_layanan || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah layanan: ${data?.nama_layanan || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as LayananCard);
   } catch (error) {
     return serverError(error);

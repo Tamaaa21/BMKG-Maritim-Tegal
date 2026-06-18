@@ -14,6 +14,10 @@ function getId(request: NextRequest, context: any): string | undefined {
   }
 }
 
+function getUsername(request: NextRequest) {
+  return request.headers.get("x-auth-user-username") || "";
+}
+
 function getRole(request: NextRequest) {
   return request.headers.get("x-auth-user-role") || "";
 }
@@ -59,7 +63,7 @@ export async function PATCH(request: NextRequest, context: any) {
       .single();
 
     if (error) throw error;
-    logActivity(getUserId(request), `Mengubah pengguna: ${data?.username || id}`);
+    logActivity(getUserId(request), `Mengubah pengguna: ${data?.username || id}`, getUsername(request));
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);
@@ -87,7 +91,7 @@ export async function DELETE(request: NextRequest, context: any) {
       .single();
 
     if (error) throw error;
-    logActivity(getUserId(request), `Menghapus pengguna: ${data?.username || id}`);
+    logActivity(getUserId(request), `Menghapus pengguna: ${data?.username || id}`, getUsername(request));
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error(error);

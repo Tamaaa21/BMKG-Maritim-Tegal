@@ -37,7 +37,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       throw error;
     }
     if (!data) return notFound();
-    logActivity(req.headers.get("x-auth-user-id"), `Mengubah struktur organisasi: ${parsed.data.jabatan}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah struktur organisasi: ${parsed.data.jabatan}`, req.headers.get("x-auth-user-username"));
     return ok(data as StrukturOrganisasi);
   } catch (error) {
     return serverError(error);
@@ -63,7 +63,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       throw error;
     }
     if (!data) return notFound();
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus struktur organisasi: ${data?.jabatan || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus struktur organisasi: ${data?.jabatan || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as StrukturOrganisasi);
   } catch (error) {
     return serverError(error);

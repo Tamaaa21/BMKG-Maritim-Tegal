@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { verifyPassword, hashPassword, createSessionToken, setAuthCookie } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { logActivity } from "@/lib/activity-log";
 import { loginSchema } from "@/lib/validation";
 import { serverError } from "@/lib/response";
 

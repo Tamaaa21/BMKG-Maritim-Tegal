@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Gagal memperbarui kata sandi di database" }, { status: 500 });
     }
 
-    logActivity(userId, "Mengubah kata sandi");
+    logActivity(userId, "Mengubah kata sandi", request.headers.get("x-auth-user-username"));
 
     return NextResponse.json({ success: true, message: "Kata sandi berhasil diperbarui" });
   } catch (error) {

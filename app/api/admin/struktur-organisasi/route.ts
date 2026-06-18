@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah struktur organisasi: ${parsed.data.jabatan}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah struktur organisasi: ${parsed.data.jabatan}`, req.headers.get("x-auth-user-username"));
     return ok(data as StrukturOrganisasi);
   } catch (error) {
     return serverError(error);

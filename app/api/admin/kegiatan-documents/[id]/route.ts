@@ -34,7 +34,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus dokumentasi kegiatan: ${data?.title || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus dokumentasi kegiatan: ${data?.title || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as KegiatanDocument);
   } catch (error) {
     return serverError(error);
@@ -83,7 +83,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .single();
 
     if (error) throw error;
-    logActivity(req.headers.get("x-auth-user-id"), `Mengubah dokumentasi kegiatan: ${data?.title || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Mengubah dokumentasi kegiatan: ${data?.title || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as KegiatanDocument);
   } catch (error) {
     return serverError(error);

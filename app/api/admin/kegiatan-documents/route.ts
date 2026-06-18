@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       throw insertError;
     }
 
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah dokumentasi kegiatan: ${title}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah dokumentasi kegiatan: ${title}`, req.headers.get("x-auth-user-username"));
     return ok(result as KegiatanDocument);
   } catch (error) {
     return serverError(error);

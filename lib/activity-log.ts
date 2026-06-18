@@ -2,29 +2,29 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function logActivity(
   userId: string | null | undefined,
-  aktivitas: string
+  aktivitas: string,
+  username?: string | null
 ) {
   if (!userId) return;
 
   const supabase: any = getSupabaseAdmin();
+  let finalUsername = username || "";
 
-  const { data: user } = await supabase
-    .from("users")
-    .select("username")
-    .eq("id", userId)
-    .single();
+  if (!finalUsername) {
+    const { data: user } = await supabase
+      .from("users")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
 
-  const username = user?.username || "unknown";
+    finalUsername = user?.username || "unknown";
+  }
 
-  await supabase.from("login_logs").insert({
-    user_id: userId,
-    username,
-    aktivitas,
-  }).catch(() => {
-    // fallback if aktivitas column doesn't exist
-    supabase.from("login_logs").insert({
-      user_id: userId,
-      username,
-    }).catch(() => {});
-  });
+  const { error } = await supabase
+    .from("login_logs")
+    .insert({ user_id: userId, username: finalUsername, aktivitas });
+
+  if (error) {
+    console.error("[logActivity] Gagal mencatat aktivitas:", error);
+  }
 }

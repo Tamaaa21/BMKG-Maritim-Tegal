@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { LoginLog } from "@/lib/types";
+import { logActivity } from "@/lib/activity-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,6 +59,8 @@ export async function DELETE(request: Request) {
       // Ignore if no body or invalid json
     }
 
+    const userId = request.headers.get("x-auth-user-id");
+
     if (ids.length > 0) {
       // Delete specific records
       const { error } = await supabase
@@ -66,6 +69,7 @@ export async function DELETE(request: Request) {
         .in("id", ids);
         
       if (error) throw error;
+      logActivity(userId, `Menghapus ${ids.length} riwayat login`, request.headers.get("x-auth-user-username"));
       return NextResponse.json({ success: true, message: "Riwayat login yang dipilih berhasil dihapus" });
     } else {
       // Delete all records
@@ -75,6 +79,7 @@ export async function DELETE(request: Request) {
         .neq("id", "0");
 
       if (error) throw error;
+      logActivity(userId, "Menghapus semua riwayat login", request.headers.get("x-auth-user-username"));
       return NextResponse.json({ success: true, message: "Semua riwayat login berhasil dihapus" });
     }
   } catch (error: any) {

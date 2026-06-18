@@ -20,7 +20,7 @@ export async function DELETE(request: Request, context: any) {
 
     if (error) throw error;
 
-    logActivity(request.headers.get("x-auth-user-id"), `Menghapus layanan berbayar`);
+    logActivity(request.headers.get("x-auth-user-id"), `Menghapus layanan berbayar`, request.headers.get("x-auth-user-username"));
     return NextResponse.json({ success: true });
   } catch (error) {
     return serverError(error);

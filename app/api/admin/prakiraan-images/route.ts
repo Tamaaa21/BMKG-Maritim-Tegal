@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         .single();
 
       if (insertError) throw insertError;
-      logActivity(req.headers.get("x-auth-user-id"), `Menambah prakiraan: ${parsed.data.title}`);
+      logActivity(req.headers.get("x-auth-user-id"), `Menambah prakiraan: ${parsed.data.title}`, req.headers.get("x-auth-user-username"));
       return ok(insertResult as PrakiraanImage);
     }
 
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 
     if (insertError) throw insertError;
 
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah prakiraan: ${title}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah prakiraan: ${title}`, req.headers.get("x-auth-user-username"));
     return ok(insertResult as PrakiraanImage);
   } catch (error) {
     return serverError(error);

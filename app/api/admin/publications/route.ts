@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       if (dbErr) return dbErr;
       throw error;
     }
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah publikasi: ${title}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah publikasi: ${title}`, req.headers.get("x-auth-user-username"));
     return ok(data as Publication);
   } catch (error) {
     const dbErr = handleDbError(error);
@@ -138,7 +138,7 @@ export async function DELETE(req: Request) {
     }
     if (!data) return notFound();
 
-    logActivity(req.headers.get("x-auth-user-id"), `Menghapus publikasi: ${data?.title || id}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menghapus publikasi: ${data?.title || id}`, req.headers.get("x-auth-user-username"));
     return ok(data as Publication);
   } catch (error) {
     const dbErr = handleDbError(error);

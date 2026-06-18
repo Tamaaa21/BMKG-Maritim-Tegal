@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     if (insertError) throw insertError;
 
-    logActivity(req.headers.get("x-auth-user-id"), `Menambah hero slider: ${name}`);
+    logActivity(req.headers.get("x-auth-user-id"), `Menambah hero slider: ${name}`, req.headers.get("x-auth-user-username"));
 
     return ok(insertData as HeroImage);
   } catch (error) {
